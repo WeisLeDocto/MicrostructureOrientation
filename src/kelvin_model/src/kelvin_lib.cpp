@@ -1,0 +1,586 @@
+// g++ kelvin_lib.cpp -o kelvin_lib.so -shared -I /usr/include/eigen3 -fPIC -O3 -march=native -ffast-math
+
+#include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
+#include <cmath>
+#include <array>
+#include <algorithm>
+
+#include "kelvin_lib.hpp"
+
+
+Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h, 
+                                                     double lambda_1, 
+                                                     double lambda_2, 
+                                                     double lambda_3, 
+                                                     double lambda_4, 
+                                                     double lambda_5, 
+                                                     double sigma,
+                                                     double m,
+                                                     bool skip_z = false) {
+  
+  Eigen::Matrix<double, 6, 6> integrated = Eigen::Matrix<double, 6, 6>::Zero();
+  
+  const double lamh_m = pow(lambda_h, m);
+  const double lam1_m = pow(lambda_1, m);
+  const double lam2_m = pow(lambda_2, m);
+  const double lam3_m = pow(lambda_3, m);
+  const double lam4_m = pow(lambda_4, m);
+  const double lam5_m = pow(lambda_5, m);
+  
+  const double sigma_sq = sigma * sigma;
+  
+  const double exp_2s = exp(2.0 * sigma_sq);
+  const double exp_6s = exp_2s * exp_2s * exp_2s;
+  const double exp_8s = exp_2s * exp_6s;
+  const double exp_neg2s = 1.0 / exp_2s;
+  const double exp_neg8s = 1.0 / exp_8s;
+  
+  const double term_A = 11.0 * lam1_m + 9.0 * lam2_m + 12.0 * lam5_m 
+      + 16.0 * lamh_m;
+  const double term_B = 12.0 * (lam1_m - lam2_m);
+  const double term_C = 9.0 * lam1_m + 3.0 * lam2_m - 12.0 * lam5_m;
+  const double term_D = 7.0 * lam1_m - 3.0 * lam2_m + 12.0 * lam5_m 
+      - 16.0 * lamh_m;
+  const double term_E = lam1_m + 3.0 * lam2_m - 4.0 * lamh_m;
+  const double term_F = 3.0 * lam1_m + lam2_m + 4.0 * lam5_m;
+  const double term_G = 3.0 * lam1_m - 3.0 * lam2_m;
+  
+  integrated(0, 0) = 1.0 / 48.0 * (term_A + term_B * exp_neg2s + term_C 
+      * exp_neg8s);
+  integrated(0, 1) = -1.0 / 48.0 * (term_D + term_C * exp_neg8s);
+  integrated(0, 2) = -1.0 / 12.0 * (term_E + term_G * exp_neg2s);
+  integrated(1, 1) = 1.0 / 48.0 * (term_A - term_B * exp_neg2s + term_C 
+      * exp_neg8s);
+  integrated(1, 2) = -1.0 / 12.0 * (term_E - term_G * exp_neg2s);
+  integrated(2, 2) = 1.0 / 6.0 * lam1_m + 1.0 / 2.0 * lam2_m + 1.0 / 3.0 
+      * lamh_m;
+  integrated(3, 3) = 1.0 / 8.0 * (term_F + (-3.0 * lam1_m - lam2_m + 4.0 
+      * lam5_m) * exp_neg8s);
+  
+  if (skip_z) {
+    integrated(4, 4) = 1.0;
+    integrated(5, 5) = 1.0;
+  }
+  else {
+    
+    const double term_H = lam3_m + lam4_m;
+    const double term_J = lam3_m - lam4_m;
+  
+    integrated(4, 4) = 0.5 * (term_H - term_J * exp_neg2s);
+    integrated(5, 5) = 0.5 * (term_H + term_J * exp_neg2s);
+  }
+  
+  integrated.triangularView<Eigen::Lower>() = integrated.transpose();
+  
+  return integrated;
+  
+}
+
+
+Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h, 
+                                                 double lambda_1, 
+                                                 double lambda_2, 
+                                                 double lambda_3, 
+                                                 double lambda_4, 
+                                                 double lambda_5, 
+                                                 double sigma,
+                                                 double m,
+                                                 bool skip_z = false) {
+  
+  Eigen::Matrix<double, 6, 6> integrated = Eigen::Matrix<double, 6, 6>::Zero();
+  
+  const double lamh_l = log(lambda_h);
+  const double lam1_l = log(lambda_1);
+  const double lam2_l = log(lambda_2);
+  const double lam3_l = log(lambda_3);
+  const double lam4_l = log(lambda_4);
+  const double lam5_l = log(lambda_5);
+  
+  const double sigma_sq = sigma * sigma;
+  
+  const double exp_2s = exp(2.0 * sigma_sq);
+  const double exp_4s = exp_2s * exp_2s;
+  const double exp_6s = exp_2s * exp_4s;
+  const double exp_8s = exp_4s * exp_4s;
+  const double exp_10s = exp_8s * exp_2s;
+  const double exp_12s = exp_8s * exp_4s;
+  const double exp_14s = exp_12s * exp_2s;
+  const double exp_16s = exp_8s * exp_8s;
+  
+  const double exp_neg2s = 1.0 / exp_2s;
+  const double exp_neg4s = 1.0 / exp_4s;
+  const double exp_neg6s = 1.0 / exp_6s;
+  const double exp_neg8s = 1.0 / exp_8s;
+  const double exp_neg10s = 1.0 / exp_10s;
+  const double exp_neg16s = 1.0 / exp_16s;
+  
+  const double term_A = 11.0 * lam1_l + 9.0 * lam2_l + 12.0 * lam5_l + 16.0 
+      * lamh_l;
+  const double term_B = 12.0 * (lam1_l - lam2_l);
+  const double term_C = 9.0 * lam1_l + 3.0 * lam2_l - 12.0 * lam5_l;
+  const double term_D = 7.0 * lam1_l - 3.0 * lam2_l + 12.0 * lam5_l - 16.0 
+      * lamh_l;
+  const double term_E = lam1_l + 3.0 * lam2_l - 4.0 * lamh_l;
+  const double term_F = 3.0 * lam1_l + lam2_l + 4.0 * lam5_l;
+  const double term_G = 3.0 * lam1_l - 3.0 * lam2_l;
+  
+  const double lam1_sq = lam1_l * lam1_l;
+  const double lam2_sq = lam2_l * lam2_l;
+  const double lam5_sq = lam5_l * lam5_l;
+  const double lam1_lam2 = lam1_l * lam2_l;
+  const double lam1_lam5 = lam1_l * lam5_l;
+  const double lam2_lam5 = lam2_l * lam5_l;
+  const double cross_term = lam1_sq - 2.0 * lam1_lam2 + lam2_sq;
+  
+  const double cross_term_m = cross_term * m;
+  const double quad_term1 = 19.0 * lam1_sq - 14.0 * lam1_lam2 + 11.0 * lam2_sq 
+      - 24.0 * lam1_lam5 - 8.0 * lam2_lam5 + 16.0 * lam5_sq;
+  const double quad_term2 = 3.0 * lam1_sq - 2.0 * lam1_lam2 - lam2_sq - 4.0 
+      * lam1_lam5 + 4.0 * lam2_lam5;
+  const double quad_term3 = 9.0 * lam1_sq + 6.0 * lam1_lam2 + lam2_sq - 24.0 
+      * lam1_lam5 - 8.0 * lam2_lam5 + 16.0 * lam5_sq;
+  const double quad_term4 = 15.0 * lam1_sq - 6.0 * lam1_lam2 + 7.0 * lam2_sq 
+      - 24.0 * lam1_lam5 - 8.0 * lam2_lam5 + 16.0 * lam5_sq;
+
+  integrated(0, 0) = 1.0 / 48.0 * (term_A * exp_8s + term_B * exp_6s + term_C) 
+      * exp_neg8s;
+  integrated(0, 1) = -1.0 / 48.0 * (term_D * exp_8s + term_C) * exp_neg8s;
+  integrated(0, 2) = -1.0 / 12.0 * (term_E * exp_2s + term_G) * exp_neg2s;
+  integrated(1, 1) = 1.0 / 48.0 * (term_A * exp_8s - term_B * exp_6s + term_C) 
+      * exp_neg8s;
+  integrated(1, 2) = -1.0 / 12.0 * (term_E * exp_2s - term_G) * exp_neg2s;
+  integrated(2, 2) = 1.0 / 6.0 * lam1_l + 1.0 / 2.0 * lam2_l + 1.0 / 3.0 
+      * lamh_l;
+  integrated(3, 3) = 1.0 / 8.0 * (term_F * exp_8s - 3.0 * lam1_l - lam2_l 
+      + 4.0 * lam5_l) * exp_neg8s;
+  if (skip_z) {
+    integrated(4, 4) = 1.0;
+    integrated(5, 5) = 1.0;
+  }
+  else {
+  
+    const double term_H = lam3_l + lam4_l;
+    const double term_J = lam3_l - lam4_l;
+  
+    integrated(4, 4) = 0.5 * (term_H * exp_2s - term_J) * exp_neg2s;
+    integrated(5, 5) = 0.5 * (term_H * exp_2s + term_J) * exp_neg2s;
+  }
+  
+  integrated(0, 0) += 1.0 / 256.0 * m * (quad_term1 * exp_16s +  4.0 
+      * quad_term2 * exp_14s - 16.0 * cross_term * exp_12s + 6.0 * cross_term 
+      * exp_8s - 4.0 * quad_term2 * exp_6s - quad_term3) * exp_neg16s;
+  integrated(0, 1) += -1.0 / 256.0 * m * ((11.0 * lam1_sq + 2.0 * lam1_lam2 
+      + 3.0 * lam2_sq - 24.0 * lam1_lam5 - 8.0 * lam2_lam5 + 16.0 * lam5_sq) 
+      * exp_16s - 8.0 * cross_term * exp_12s + 6.0 * cross_term * exp_8s 
+      - quad_term3) * exp_neg16s;
+  integrated(0, 2) += -1.0 / 64.0 * m * (2.0 * cross_term * exp_10s + (3.0 
+      * lam1_sq - 2.0 * lam1_lam2 - lam2_sq - 4.0 * lam1_lam5 + 4.0 
+      * lam2_lam5) * exp_8s - 2.0 * cross_term * exp_6s - (3.0 * lam1_sq - 2.0 
+      * lam1_lam2 - lam2_sq - 4.0 * lam1_lam5 + 4.0 * lam2_lam5)) * exp_neg10s;
+  integrated(1, 1) += 1.0 / 256.0 * m * (quad_term1 * exp_16s - 4.0 
+      * quad_term2 * exp_14s - 16.0 * cross_term * exp_12s + 6.0 * cross_term 
+      * exp_8s + 4.0 * quad_term2 * exp_6s - quad_term3) * exp_neg16s;
+  integrated(1, 2) += -1.0 / 64.0 * m * (2.0 * cross_term * exp_10s - (3.0 
+      * lam1_sq - 2.0 * lam1_lam2 - lam2_sq - 4.0 * lam1_lam5 + 4.0 
+      * lam2_lam5) * exp_8s - 2.0 * cross_term * exp_6s + (3.0 * lam1_sq - 2.0 
+      * lam1_lam2 - lam2_sq - 4.0 * lam1_lam5 + 4.0 * lam2_lam5)) * exp_neg10s;
+  integrated(2, 2) += 1.0 / 16.0 * cross_term_m * (exp_4s - 1.0) * exp_neg4s;
+  integrated(3, 3) += 1.0 / 128.0 * m * (quad_term4 * exp_16s - 6.0 
+      * cross_term * exp_8s - quad_term3) * exp_neg16s;
+  
+  if (!skip_z) {
+  
+    const double z_cross = lam3_l * lam3_l - 2.0 * lam3_l * lam4_l + lam4_l 
+        * lam4_l;
+    const double z_term = z_cross * m * (exp_4s - 1.0) * exp_neg4s;
+  
+    integrated(4, 4) += 0.125 * z_term;
+    integrated(5, 5) += 0.125 * z_term;
+  }
+
+  integrated.triangularView<Eigen::Lower>() = integrated.transpose();
+  
+  return integrated;
+  
+}
+
+Eigen::Matrix<double, 6, 6> rotate(const Eigen::Matrix<double, 6, 6> tensor, 
+                                   double angle) {
+
+  Eigen::Matrix<double, 3, 3> rot_mat;
+  const double cos_ang = cos(angle);
+  const double sin_ang = sin(angle);
+  rot_mat << cos_ang, -sin_ang, 0.0,
+             sin_ang,  cos_ang, 0.0,
+             0.0,      0.0,     1.0;
+  
+  Eigen::Matrix<double, 6, 6> rot_ten;
+  
+  rot_ten(0, 0) = rot_mat(0, 0) * rot_mat(0, 0);
+  rot_ten(0, 1)= rot_mat(1, 0) * rot_mat(1, 0);
+  rot_ten(0, 2) = rot_mat(2, 0) * rot_mat(2, 0);
+  rot_ten(0, 3) = sqrt(2) * rot_mat(0, 0) * rot_mat(1, 0);
+  rot_ten(0, 4) = sqrt(2) * rot_mat(0, 0) * rot_mat(2, 0);
+  rot_ten(0, 5) = sqrt(2) * rot_mat(1, 0) * rot_mat(2, 0);
+
+  rot_ten(1, 0) = rot_mat(0, 1) * rot_mat(0, 1);
+  rot_ten(1, 1) = rot_mat(1, 1) * rot_mat(1, 1);
+  rot_ten(1, 2) = rot_mat(2, 1) * rot_mat(2, 1);
+  rot_ten(1, 3) = sqrt(2) * rot_mat(0, 1) * rot_mat(1, 1);
+  rot_ten(1, 4) = sqrt(2) * rot_mat(0, 1) * rot_mat(2, 1);
+  rot_ten(1, 5) = sqrt(2) * rot_mat(1, 1) * rot_mat(2, 1);
+
+  rot_ten(2, 0) = rot_mat(0, 2) * rot_mat(0, 2);
+  rot_ten(2, 1) = rot_mat(1, 2) * rot_mat(1, 2);
+  rot_ten(2, 2) = rot_mat(2, 2) * rot_mat(2, 2);
+  rot_ten(2, 3) = sqrt(2) * rot_mat(0, 2) * rot_mat(1, 2);
+  rot_ten(2, 4) = sqrt(2) * rot_mat(0, 2) * rot_mat(2, 2);
+  rot_ten(2, 5) = sqrt(2) * rot_mat(1, 2) * rot_mat(2, 2);
+
+  rot_ten(3, 0) = sqrt(2) * rot_mat(0, 0) * rot_mat(0, 1);
+  rot_ten(3, 1) = sqrt(2) * rot_mat(1, 0) * rot_mat(1, 1);
+  rot_ten(3, 2) = sqrt(2) * rot_mat(2, 0) * rot_mat(2, 1);
+  rot_ten(3, 3) = rot_mat(0, 0) * rot_mat(1, 1) + rot_mat(0, 1) 
+      * rot_mat(1, 0);
+  rot_ten(3, 4) = rot_mat(0, 0) * rot_mat(2, 1) + rot_mat(0, 1) 
+      * rot_mat(2, 0);
+  rot_ten(3, 5) = rot_mat(1, 0) * rot_mat(2, 1) + rot_mat(1, 1) 
+      * rot_mat(2, 0);
+
+  rot_ten(4, 0) = sqrt(2) * rot_mat(0, 0) * rot_mat(0, 2);
+  rot_ten(4, 1) = sqrt(2) * rot_mat(1, 0) * rot_mat(1, 2);
+  rot_ten(4, 2) = sqrt(2) * rot_mat(2, 0) * rot_mat(2, 2);
+  rot_ten(4, 3) = rot_mat(0, 0) * rot_mat(1, 2) + rot_mat(0, 2) 
+      * rot_mat(1, 0);
+  rot_ten(4, 4) = rot_mat(0, 0) * rot_mat(2, 2) + rot_mat(0, 2) 
+      * rot_mat(2, 0);
+  rot_ten(4, 5) = rot_mat(1, 0) * rot_mat(2, 2) + rot_mat(1, 2) 
+      * rot_mat(2, 0);
+
+  rot_ten(5, 0) = sqrt(2) * rot_mat(0, 1) * rot_mat(0, 2);
+  rot_ten(5, 1) = sqrt(2) * rot_mat(1, 1) * rot_mat(1, 2);
+  rot_ten(5, 2) = sqrt(2) * rot_mat(2, 1) * rot_mat(2, 2);
+  rot_ten(5, 3) = rot_mat(0, 1) * rot_mat(1, 2) + rot_mat(0, 2) 
+      * rot_mat(1, 1);
+  rot_ten(5, 4) = rot_mat(0, 1) * rot_mat(2, 2) + rot_mat(0, 2) 
+      * rot_mat(2, 1);
+  rot_ten(5, 5) = rot_mat(1, 1) * rot_mat(2, 2) + rot_mat(1, 2) 
+      * rot_mat(2, 1);
+  
+  return rot_ten.transpose() * tensor * rot_ten;
+
+}
+
+
+Eigen::Matrix<double, 6, 1> final_stress(
+    const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
+    const Eigen::Matrix<double, 6, 1> strain,
+    const std::array<double, 5> &vals) {
+    
+  std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+  Eigen::Matrix<double, 6, 6> stiff_tot = Eigen::Matrix<double, 6, 6>::Zero();
+  
+  for (int j = 0; j < 5; j++) {
+    if (vals[j] == 0.0) continue;
+    
+    if (j > 0) {
+      factor[j] = strain.dot(stiffness[j] * strain);
+    }
+    
+    stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j];
+  }
+  
+  return stiff_tot * strain;
+  
+}
+
+
+float calc_ezz_plane_stress_2(
+    const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
+    Eigen::Matrix<double, 6, 1> strain,
+    const std::array<double, 5> &vals,
+    const double stop_crit,
+    const int max_iter) {
+  
+  std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+  Eigen::Matrix<double, 1, 6> stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
+  
+  for (int j = 0; j < 5; j++) {
+    if (vals[j] == 0.0) continue;
+    if (j > 0) {
+      factor[j] = strain.dot(stiffness[j] * strain);
+    }
+    stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
+  }
+
+  double szz = stiff_tot.dot(strain);
+  double prev_szz = szz;
+  
+  if (abs(szz) < stop_crit) return strain(2, 0);
+  
+  if (stiff_tot(2) != 0.0) {
+    strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
+                     stiff_tot(1) * strain(1, 0) + 
+                     stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
+  }
+  else {
+    return stiff_tot(0) * strain(0, 0) + stiff_tot(1) * strain(1, 0) 
+        + stiff_tot(3) * strain(3, 0);
+  }
+  
+  int n = 0;
+  while (n < max_iter) {
+    ++n;
+    
+    factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+    stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
+    
+    for (int j = 0; j < 5; j++) {
+      if (vals[j] == 0.0) continue;
+      if (j > 0) {
+        factor[j] = strain.dot(stiffness[j] * strain);
+      }
+      stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
+    }
+   
+    szz = stiff_tot.dot(strain);
+    
+    if (abs(szz) < stop_crit) return strain(2, 0);
+    
+    if (stiff_tot(2) != 0.0) {
+      strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
+                       stiff_tot(1) * strain(1, 0) + 
+                       stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
+    }
+    else {
+      return stiff_tot(0) * strain(0, 0) + stiff_tot(1) * strain(1, 0) 
+          + stiff_tot(3) * strain(3, 0);
+    }
+    
+  }
+  
+  return strain(2, 0);
+  
+}
+
+
+float calc_ezz_plane_stress(
+    const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
+    Eigen::Matrix<double, 6, 1> strain,
+    const std::array<double, 5> &vals,
+    const double stop_crit,
+    const int max_iter) {
+  
+  std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+  std::array<double, 5> d_factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+  Eigen::Matrix<double, 1, 6> stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
+  double sum_grad = 0.0;
+  
+  for (int j = 0; j < 5; j++) {
+    if (vals[j] == 0.0) continue;
+    
+    if (j > 0) {
+      factor[j] = strain.dot(stiffness[j] * strain);
+      d_factor[j] = 2.0 * stiffness[j].row(2).dot(strain);
+      sum_grad += vals[j] * j * (j + 1) * pow(factor[j], (j - 1)) * d_factor[j] 
+        * stiffness[j].row(2).dot(strain);
+    }
+    
+    stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
+  }
+
+  double szz = stiff_tot.dot(strain);
+  double grad = 2.0 * szz * (sum_grad + stiff_tot(2));
+  double prev_szz = szz;
+  
+  double weight = 0.01;
+  int n = 0;
+  
+  if (stiff_tot(2) != 0.0) {
+    strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
+                     stiff_tot(1) * strain(1, 0) + 
+                     stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
+  }
+  else {
+    strain(2, 0) = strain(2, 0) - weight * grad;
+  }
+  
+  while (n < max_iter) {
+    ++n;
+    
+    factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+    d_factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+    stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
+    sum_grad = 0.0;
+    
+    for (int j = 0; j < 5; j++) {
+      if (vals[j] == 0.0) continue;
+      
+      if (j > 0) {
+        factor[j] = strain.dot(stiffness[j] * strain);
+        d_factor[j] = 2.0 * stiffness[j].row(2).dot(strain);
+        sum_grad += vals[j] * j * (j + 1) * pow(factor[j], (j - 1)) 
+          * d_factor[j] * stiffness[j].row(2).dot(strain);
+      }
+      
+      stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
+    }
+   
+    szz = stiff_tot.dot(strain);
+    grad = 2.0 * szz * (sum_grad + stiff_tot(2));
+    
+    if (abs(szz) < stop_crit) return strain(2, 0);
+    
+    weight = (abs(szz) <= abs(prev_szz)) ? 1.2 * weight : 0.5 * weight;
+    prev_szz = szz;
+    
+    strain(2, 0) = strain(2, 0) - weight * grad;
+    
+  }
+  
+  return strain(2, 0);
+  
+}
+
+
+int calc_stress(double exx,
+                double eyy,
+                double exy,
+                double lamh,
+                double lam11,
+                double lam21,
+                double lam31,
+                double lam41,
+                double lam51,
+                double lam12,
+                double lam22,
+                double lam32,
+                double lam42,
+                double lam52,
+                double lam13,
+                double lam23,
+                double lam33,
+                double lam43,
+                double lam53,
+                double lam14,
+                double lam24,
+                double lam34,
+                double lam44,
+                double lam54,
+                double lam15,
+                double lam25,
+                double lam35,
+                double lam45,
+                double lam55,
+                double val1,
+                double val2,
+                double val3,
+                double val4,
+                double val5,
+                double theta_1,
+                double theta_2,
+                double theta_3,
+                double sigma_1,
+                double sigma_2,
+                double sigma_3,
+                double density,
+                double* sxx,
+                double* syy,
+                double* sxy) {
+
+  // Compute eigenvalues
+  const double trace = exx + eyy;
+  const double det = exx * eyy - exy * exy;
+  const double sqrt_term = sqrt((exx - eyy) * (exx - eyy) + 4.0 * exy * exy);
+  const double lambda1 = (trace + sqrt_term) * 0.5;
+  const double lambda2 = (trace - sqrt_term) * 0.5;
+
+  // Compute eigenvector angle (theta_load)
+  double theta_load;
+  if (abs(exy) < 1e-12 && abs(exx - eyy) < 1e-12) {
+      theta_load = 0.0;
+  } else {
+      theta_load = 0.5 * atan2(2.0 * exy, exx - eyy);
+  }
+  
+  const double sigstd[3] = {sigma_1, sigma_2, sigma_3};
+  const double theta[3] = {theta_1, theta_2, theta_3};
+  const std::array<double, 5> vals = {val1, val2, val3, val4, val5};
+  const std::array<double, 5> lam1 = {lam11, lam12, lam13, lam14, lam15};
+  const std::array<double, 5> lam2 = {lam21, lam22, lam23, lam24, lam25};
+  const std::array<double, 5> lam3 = {lam31, lam32, lam33, lam34, lam35};
+  const std::array<double, 5> lam4 = {lam41, lam42, lam43, lam44, lam45};
+  const std::array<double, 5> lam5 = {lam51, lam52, lam53, lam54, lam55};
+  
+  std::array<Eigen::Matrix<double, 6, 6>, 5> stiffness;
+  std::fill(stiffness.begin(), 
+            stiffness.end(), 
+            Eigen::Matrix<double, 6, 6>::Zero());
+  Eigen::Matrix<double, 6, 6> homogenized;
+
+  int layer_count = 0;
+  for (int i = 0; i < 3; i++) {
+
+    if (sigstd[i] < 0.01) break;
+    
+    double m = cos(2.0 * (theta_load - theta[i]));
+    m *= (abs(lambda1 - lambda2)) / (abs(lambda1) + abs(lambda2));
+    
+    for (int j = 0; j < 5; j++) {
+    
+      if (vals[j] == 0.0) continue;
+    
+      if (abs(m) < 0.01) {
+        homogenized = zero_m_approximation(
+          lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], sigstd[i], 
+          m, true).exp();
+      }
+      else {
+        homogenized = kelvin_integrated_tensor(
+          lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], 
+          sigstd[i], m, true).pow(1.0 / m);
+      }
+      
+      if (i == 0) {
+        stiffness[j] = rotate(homogenized, theta[i]);
+      }
+      else {
+        stiffness[j] += rotate(homogenized, theta[i]);
+      }
+      
+    }
+    
+    ++layer_count;
+  }
+  
+  for (int j = 0; j < 5; j++) {
+    stiffness[j] = stiffness[j] / layer_count;
+  }
+  
+  Eigen::Matrix<double, 6, 1> strain_3d;
+  strain_3d(0, 0) = exx;
+  strain_3d(1, 0) = eyy;
+  strain_3d(3, 0) = exy;
+  strain_3d(4, 0) = 0.0;
+  strain_3d(5, 0) = 0.0;
+  
+  strain_3d(2, 0) = 0.0;
+  strain_3d(2, 0) = calc_ezz_plane_stress_2(
+      stiffness, 
+      strain_3d, 
+      vals, 
+      std::max(exx, std::max(eyy, exy)) / 1000.0,
+      100);
+  
+  const Eigen::Matrix<double, 6, 1> sig_3d = density * final_stress(stiffness,
+                                                                    strain_3d,
+                                                                    vals);
+  
+  *sxx = sig_3d(0, 0);
+  *syy = sig_3d(1, 0);
+  *sxy = sig_3d(3, 0);
+  
+  return 0;
+
+}

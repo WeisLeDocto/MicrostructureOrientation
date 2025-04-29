@@ -1,0 +1,58 @@
+#ifdef _MSC_VER
+    #define EXPORT_SYMBOL __declspec(dllexport)
+#else
+    #define EXPORT_SYMBOL
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+EXPORT_SYMBOL int calc_stress(double exx,
+                              double eyy,
+                              double exy,
+                              double lamh,
+                              double lam11,
+                              double lam21,
+                              double lam31,
+                              double lam41,
+                              double lam51,
+                              double lam12,
+                              double lam22,
+                              double lam32,
+                              double lam42,
+                              double lam52,
+                              double lam13,
+                              double lam23,
+                              double lam33,
+                              double lam43,
+                              double lam53,
+                              double lam14,
+                              double lam24,
+                              double lam34,
+                              double lam44,
+                              double lam54,
+                              double lam15,
+                              double lam25,
+                              double lam35,
+                              double lam45,
+                              double lam55,
+                              double val1,
+                              double val2,
+                              double val3,
+                              double val4,
+                              double val5,
+                              double theta_1,
+                              double theta_2,
+                              double theta_3,
+                              double sigma_1,
+                              double sigma_2,
+                              double sigma_3,
+                              double density,
+                              double* sxx,
+                              double* syy,
+                              double* sxy);
+
+#ifdef __cplusplus
+}
+#endif
