@@ -86,12 +86,12 @@ def error_diagonal(lib_path: Path,
                                    sigma_3,
                                    density)
 
-    sxx_int = RegularGridInterpolator((np.arange(exx.shape[0]),
-                                       np.arange(exx.shape[1])), sxx)
-    syy_int = RegularGridInterpolator((np.arange(exx.shape[0]),
-                                       np.arange(exx.shape[1])), syy)
-    sxy_int = RegularGridInterpolator((np.arange(exx.shape[0]),
-                                       np.arange(exx.shape[1])), sxy)
+    sxx_int = RegularGridInterpolator((np.arange(sxx.shape[0]),
+                                       np.arange(sxx.shape[1])), sxx)
+    syy_int = RegularGridInterpolator((np.arange(syy.shape[0]),
+                                       np.arange(syy.shape[1])), syy)
+    sxy_int = RegularGridInterpolator((np.arange(sxy.shape[0]),
+                                       np.arange(sxy.shape[1])), sxy)
 
     sxx_diags = sxx_int(interp_pts)
     syy_diags = syy_int(interp_pts)
