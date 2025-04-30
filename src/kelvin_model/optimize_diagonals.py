@@ -96,9 +96,9 @@ def error_diagonal(lib_path: Path,
     sxx_diags = sxx_int(interp_pts)
     syy_diags = syy_int(interp_pts)
     sxy_diags = sxy_int(interp_pts)
-    stress = np.stack((np.stack((sxx_diags, sxy_diags), axis=1),
-                       np.stack((sxy_diags, syy_diags), axis=1)), axis=2)
-    proj = stress @ normals * scale * thickness / cosines
+    stress = np.stack((np.stack((sxx_diags, sxy_diags), axis=2),
+                       np.stack((sxy_diags, syy_diags), axis=2)), axis=3)
+    proj = (stress @ normals).squeeze() * scale * thickness / cosines
     sum_diags = np.sum(proj, axis=1)
 
     return np.sum(np.sqrt(np.power(sum_diags[:, 0] - effort_x, 2) +
@@ -344,6 +344,8 @@ def optimize_diagonals(lib_path: Path,
         normals[i] /= np.linalg.norm(normals[i], axis=1)[:, np.newaxis]
 
     cosines = normals @ np.array((1.0, 0.0), dtype=np.float64)
+    normals = normals[..., np.newaxis]
+    cosines = cosines[..., np.newaxis]
 
     nb_max = 17
     low_bounds = np.array((1.0e-5,) * nb_max)
