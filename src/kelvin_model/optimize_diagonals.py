@@ -200,6 +200,8 @@ def error_diagonals(lib_path: Path,
                                 effort_x,
                                 effort_y)
 
+    print("\n")
+    print(error)
     return error
 
 
