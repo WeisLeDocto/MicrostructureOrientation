@@ -328,9 +328,8 @@ def error_diagonals(lib_path: Path,
                           effort_x,
                           effort_y)
 
-    print("\n")
     if verbose:
-        print(error, "\n")
+        print("\n", error, "\n")
     return error
 
 
