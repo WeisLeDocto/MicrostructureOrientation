@@ -535,7 +535,7 @@ def optimize_diagonals(lib_path: Path,
                                 'thickness': thickness,
                                 'efforts_x': efforts_x,
                                 'efforts_y': efforts_y})
-    print(', '.join(fit.x.tolist()))
+    print(', '.join(map(str, fit.x.tolist())))
 
 
 if __name__ == "__main__":
@@ -560,16 +560,16 @@ if __name__ == "__main__":
     peaks = np.radians(np.load(peaks_path)['arr_0'])
 
     # 7LX1_2 14
-    x0 = np.concatenate((np.array((0.4821446796378303,
-                                   26.99900699137642),
+    x0 = np.concatenate((np.array((0.30020755103829283,
+                                   25.19493251019424),
                                   dtype=np.float64),
-                         np.array((0.6514774582289321,
-                                   1.841715651404761,
-                                   0.8314353094200984),
+                         np.array((0.35860865997284846,
+                                   1.1001569795043067,
+                                   1.9246655940124011),
                                   dtype=np.float64),
-                         np.tile(np.array((0.11400011168738121,
-                                           0.00021413006227584167,
-                                           0.2536989285296272),
+                         np.tile(np.array((0.05173090970053023,
+                                           1.0002428200797694e-05,
+                                           0.10962265560373999),
                                           dtype=np.float64),
                                  4)), axis=0)
 
