@@ -7,6 +7,7 @@ import itertools
 from pathlib import Path
 from tqdm.auto import tqdm
 import sys
+from math import prod
 
 
 def worker(lib_path: Path,
@@ -145,7 +146,7 @@ def compute_stress(lib_path: Path,
                    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """"""
 
-    nb_tot = exx.shape[0] * exx.shape[1]
+    nb_tot = prod(exx.shape)
     mem_buf = ((ctypes.c_double(),) * nb_tot,
                (ctypes.c_double(),) * nb_tot,
                (ctypes.c_double(),) * nb_tot)
@@ -208,4 +209,4 @@ def compute_stress(lib_path: Path,
                 pbar.update()
                 pbar.refresh()
 
-    return stress[:, :, 0], stress[:, :, 1], stress[:, :, 2]
+    return stress[..., 0], stress[..., 1], stress[..., 2]
