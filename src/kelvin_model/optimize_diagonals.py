@@ -311,7 +311,7 @@ def optimize_diagonals(lib_path: Path,
                        def_images: Sequence[np.ndarray],
                        efforts_x: Sequence[float],
                        efforts_y: Sequence[float],
-                       order_coeffs: Sequence[float],
+                       order_coeffs: np.ndarray,
                        scale: float,
                        thickness: float,
                        nb_interp_diag: int) -> None:
