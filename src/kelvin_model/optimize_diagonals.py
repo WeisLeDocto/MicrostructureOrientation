@@ -330,7 +330,7 @@ def error_diagonals(lib_path: Path,
 
     print("\n")
     if verbose:
-        print(error)
+        print(error, "\n")
     return error
 
 
