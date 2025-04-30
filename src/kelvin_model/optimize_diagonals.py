@@ -553,16 +553,17 @@ if __name__ == "__main__":
     peaks_path = Path("/home/weis/Desktop/HDR/7LX1_2/peaks/4_2414.npz")
     peaks = np.radians(np.load(peaks_path)['arr_0'])
 
-    x0 = np.concatenate((np.array((0.4451754518152804,
-                                   27.025465604983314),
+    # 7LX1_2 14
+    x0 = np.concatenate((np.array((0.4821446796378303,
+                                   26.99900699137642),
                                   dtype=np.float64),
-                         np.array((0.4881569906138767,
-                                   1.820673079991068,
-                                   0.5832944335371016),
+                         np.array((0.6514774582289321,
+                                   1.841715651404761,
+                                   0.8314353094200984),
                                   dtype=np.float64),
-                         np.tile(np.array((0.08648376825572138,
-                                           0.001,
-                                           0.2743780032319888),
+                         np.tile(np.array((0.11400011168738121,
+                                           0.00021413006227584167,
+                                           0.2536989285296272),
                                           dtype=np.float64),
                                  4)), axis=0)
 
