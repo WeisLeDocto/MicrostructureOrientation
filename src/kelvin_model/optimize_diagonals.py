@@ -316,7 +316,8 @@ def optimize_diagonals(lib_path: Path,
                        order_coeffs: np.ndarray,
                        scale: float,
                        thickness: float,
-                       nb_interp_diag: int) -> None:
+                       nb_interp_diag: int,
+                       diagonal_downscaling: int) -> None:
     """"""
 
     exxs, eyys, exys = zip(*(image_correlation(ref_img, def_img)
@@ -338,12 +339,16 @@ def optimize_diagonals(lib_path: Path,
         interp_pts[j, :, 0] = np.linspace(0, ref_img.shape[0] - 1,
                                           nb_interp_diag)
 
+    interp_pts = interp_pts[::diagonal_downscaling]
+
     normals = np.zeros((ref_img.shape[1], nb_interp_diag, 2), dtype=np.float64)
     for i in range(normals.shape[0]):
         normals[i] = np.array((1.0, (ref_img.shape[1] - 2 * i - 1) /
                                ref_img.shape[0]),
                               dtype=np.float64)
         normals[i] /= np.linalg.norm(normals[i], axis=1)[:, np.newaxis]
+
+    normals = normals[::diagonal_downscaling]
 
     cosines = normals @ np.array((1.0, 0.0), dtype=np.float64)
     normals = normals[..., np.newaxis]
@@ -442,6 +447,7 @@ if __name__ == "__main__":
     thickness = 0.54
 
     nb_interp_diag = ref_img.shape[0]
+    diagonal_downscaling = 20
 
     optimize_diagonals(lib_path,
                        ref_img,
@@ -455,4 +461,5 @@ if __name__ == "__main__":
                        order_coeffs,
                        scale,
                        thickness,
-                       nb_interp_diag)
+                       nb_interp_diag,
+                       diagonal_downscaling)
