@@ -4,9 +4,10 @@ import ctypes
 import concurrent.futures
 import numpy as np
 import itertools
+from pathlib import Path
 
 
-def worker(lib: ctypes.CDLL,
+def worker(lib_path: Path,
            i: int,
            exx: float,
            eyy: float,
@@ -53,6 +54,8 @@ def worker(lib: ctypes.CDLL,
            syy: ctypes.c_double,
            sxy: ctypes.c_double) -> tuple[int, float, float, float]:
     """"""
+
+    lib = ctypes.CDLL(str(lib_path))
 
     lib.calc_stress(*map(ctypes.c_double, (exx,
                                            eyy,
@@ -105,7 +108,7 @@ def wrapper(args):
     return worker(*args)
 
 
-def compute_stress(lib: ctypes.CDLL,
+def compute_stress(lib_path: Path,
                    exx: np.ndarray,
                    eyy: np.ndarray,
                    exy: np.ndarray,
@@ -144,7 +147,7 @@ def compute_stress(lib: ctypes.CDLL,
     mem_buf = ((ctypes.c_double(),) * nb_tot,
                (ctypes.c_double(),) * nb_tot,
                (ctypes.c_double(),) * nb_tot)
-    args = zip(itertools.repeat(lib, nb_tot),
+    args = zip(itertools.repeat(lib_path, nb_tot),
                range(nb_tot),
                exx.flatten(),
                eyy.flatten(),

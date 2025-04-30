@@ -2,15 +2,15 @@
 
 from collections.abc import Sequence
 import numpy as np
-import ctypes
 from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import least_squares, Bounds
+from pathlib import Path
 
 from compute_stress import compute_stress
 from image_correlation import image_correlation
 
 
-def error_diagonal(lib: ctypes.CDLL,
+def error_diagonal(lib_path: Path,
                    exx: np.ndarray,
                    eyy: np.ndarray,
                    exy: np.ndarray,
@@ -51,7 +51,7 @@ def error_diagonal(lib: ctypes.CDLL,
                    effort_y: float) -> float:
     """"""
 
-    sxx, syy, sxy = compute_stress(lib,
+    sxx, syy, sxy = compute_stress(lib_path,
                                    exx,
                                    eyy,
                                    exy,
@@ -104,7 +104,7 @@ def error_diagonal(lib: ctypes.CDLL,
                   axis=None) / interp_pts.shape[0]
 
 
-def error_diagonals(lib: ctypes.CDLL,
+def error_diagonals(lib_path: Path,
                     exxs: Sequence[np.ndarray],
                     eyys: Sequence[np.ndarray],
                     exys: Sequence[np.ndarray],
@@ -148,7 +148,7 @@ def error_diagonals(lib: ctypes.CDLL,
     error = 0.0
     for (exx, eyy, exy,
          effort_x, effort_y) in zip(exxs, eyys, exys, efforts_x, efforts_y):
-        error += error_diagonal(lib,
+        error += error_diagonal(lib_path,
                                 exx,
                                 eyy,
                                 exy,
@@ -209,7 +209,7 @@ def wrapper(x: np.ndarray,
             sigma_2: np.ndarray,
             sigma_3: np.ndarray,
             density_base: np.ndarray,
-            lib: ctypes.CDLL,
+            lib_path: Path,
             interp_pts: np.ndarray,
             normals: np.ndarray,
             cosines: np.ndarray,
@@ -249,7 +249,7 @@ def wrapper(x: np.ndarray,
     d_max, d_min = density_base.max(), density_base.min()
     density = 1 - (1 - dens_min) * (density_base - d_min) / (d_max - d_min)
 
-    return error_diagonals(lib,
+    return error_diagonals(lib_path,
                            exxs,
                            eyys,
                            exys,
@@ -290,7 +290,7 @@ def wrapper(x: np.ndarray,
                            efforts_y)
 
 
-def optimize_diagonals(lib: ctypes.CDLL,
+def optimize_diagonals(lib_path: Path,
                        ref_img: np.ndarray,
                        density_base: np.ndarray,
                        gauss_fit: np.ndarray,
@@ -369,7 +369,7 @@ def optimize_diagonals(lib: ctypes.CDLL,
                                 'sigma_2': sigma_2,
                                 'sigma_3': sigma_3,
                                 'density_base': density_base,
-                                'lib': lib,
+                                'lib_path': lib_path,
                                 'interp_pts': interp_pts,
                                 'normals': normals,
                                 'cosines': cosines,
