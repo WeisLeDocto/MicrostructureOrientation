@@ -106,7 +106,133 @@ def error_diagonal(lib_path: Path,
                   axis=None) / interp_pts.shape[0]
 
 
+def error_all_diagonals(lib_path: Path,
+                        exx: np.ndarray,
+                        eyy: np.ndarray,
+                        exy: np.ndarray,
+                        lambda_h: float,
+                        lambda_11: float,
+                        lambda_21: float,
+                        lambda_51: float,
+                        lambda_12: float,
+                        lambda_22: float,
+                        lambda_52: float,
+                        lambda_13: float,
+                        lambda_23: float,
+                        lambda_53: float,
+                        lambda_14: float,
+                        lambda_24: float,
+                        lambda_54: float,
+                        lambda_15: float,
+                        lambda_25: float,
+                        lambda_55: float,
+                        val1: float,
+                        val2: float,
+                        val3: float,
+                        val4: float,
+                        val5: float,
+                        theta_1: np.ndarray,
+                        theta_2: np.ndarray,
+                        theta_3: np.ndarray,
+                        sigma_1: np.ndarray,
+                        sigma_2: np.ndarray,
+                        sigma_3: np.ndarray,
+                        density: np.ndarray,
+                        interp_pts: np.ndarray,
+                        normals: np.ndarray,
+                        cosines: np.ndarray,
+                        scale: float,
+                        thickness: float,
+                        effort_x: float,
+                        effort_y: float) -> None:
+    """"""
+
+    exx_int = RegularGridInterpolator((np.arange(exx.shape[0]),
+                                       np.arange(exx.shape[1])), exx)
+    eyy_int = RegularGridInterpolator((np.arange(eyy.shape[0]),
+                                       np.arange(eyy.shape[1])), eyy)
+    exy_int = RegularGridInterpolator((np.arange(exy.shape[0]),
+                                       np.arange(exy.shape[1])), exy)
+    exx_diags = exx_int(interp_pts)
+    eyy_diags = eyy_int(interp_pts)
+    exy_diags = exy_int(interp_pts)
+
+    theta_1_int = RegularGridInterpolator((np.arange(theta_1.shape[0]),
+                                           np.arange(theta_1.shape[1])),
+                                          theta_1)
+    theta_2_int = RegularGridInterpolator((np.arange(theta_2.shape[0]),
+                                           np.arange(theta_2.shape[1])),
+                                          theta_2)
+    theta_3_int = RegularGridInterpolator((np.arange(theta_3.shape[0]),
+                                           np.arange(theta_3.shape[1])),
+                                          theta_3)
+    theta_1_diags = theta_1_int(interp_pts)
+    theta_2_diags = theta_2_int(interp_pts)
+    theta_3_diags = theta_3_int(interp_pts)
+
+    sigma_1_int = RegularGridInterpolator((np.arange(sigma_1.shape[0]),
+                                           np.arange(sigma_1.shape[1])),
+                                          sigma_1)
+    sigma_2_int = RegularGridInterpolator((np.arange(sigma_2.shape[0]),
+                                           np.arange(sigma_2.shape[1])),
+                                          sigma_2)
+    sigma_3_int = RegularGridInterpolator((np.arange(sigma_3.shape[0]),
+                                           np.arange(sigma_3.shape[1])),
+                                          sigma_3)
+    sigma_1_diags = sigma_1_int(interp_pts)
+    sigma_2_diags = sigma_2_int(interp_pts)
+    sigma_3_diags = sigma_3_int(interp_pts)
+
+    density_int = RegularGridInterpolator((np.arange(density.shape[0]),
+                                           np.arange(density.shape[1])),
+                                          density)
+    density_diags = density_int(interp_pts)
+
+    sxx, syy, sxy = compute_stress(lib_path,
+                                   exx_diags,
+                                   eyy_diags,
+                                   exy_diags,
+                                   lambda_h,
+                                   lambda_11,
+                                   lambda_21,
+                                   lambda_51,
+                                   lambda_12,
+                                   lambda_22,
+                                   lambda_52,
+                                   lambda_13,
+                                   lambda_23,
+                                   lambda_53,
+                                   lambda_14,
+                                   lambda_24,
+                                   lambda_54,
+                                   lambda_15,
+                                   lambda_25,
+                                   lambda_55,
+                                   val1,
+                                   val2,
+                                   val3,
+                                   val4,
+                                   val5,
+                                   theta_1_diags,
+                                   theta_2_diags,
+                                   theta_3_diags,
+                                   sigma_1_diags,
+                                   sigma_2_diags,
+                                   sigma_3_diags,
+                                   density_diags)
+
+    stress = np.stack((np.stack((sxx, sxy), axis=2),
+                       np.stack((sxy, syy), axis=2)), axis=3)
+    proj = (stress @ normals).squeeze() * scale * thickness / cosines
+    sum_diags = np.sum(proj, axis=1)
+
+    return np.sum(np.sqrt(np.power(sum_diags[:, 0] - effort_x, 2) +
+                          np.power(sum_diags[:, 1] - effort_y, 2)),
+                  axis=None) / interp_pts.shape[0]
+
+
 def error_diagonals(lib_path: Path,
+                    interp_strain: bool,
                     exxs: Sequence[np.ndarray],
                     eyys: Sequence[np.ndarray],
                     exys: Sequence[np.ndarray],
@@ -148,6 +274,7 @@ def error_diagonals(lib_path: Path,
     """"""
 
     error = 0.0
+    err_func = error_all_diagonals if interp_strain else error_diagonal
     for (exx, eyy, exy,
          effort_x, effort_y) in tqdm(zip(exxs,
                                          eyys,
@@ -160,45 +287,45 @@ def error_diagonals(lib_path: Path,
                                      colour='green',
                                      position=0,
                                      leave=False):
-        error += error_diagonal(lib_path,
-                                exx,
-                                eyy,
-                                exy,
-                                lambda_h,
-                                lambda_11,
-                                lambda_21,
-                                lambda_51,
-                                lambda_12,
-                                lambda_22,
-                                lambda_52,
-                                lambda_13,
-                                lambda_23,
-                                lambda_53,
-                                lambda_14,
-                                lambda_24,
-                                lambda_54,
-                                lambda_15,
-                                lambda_25,
-                                lambda_55,
-                                val1,
-                                val2,
-                                val3,
-                                val4,
-                                val5,
-                                theta_1,
-                                theta_2,
-                                theta_3,
-                                sigma_1,
-                                sigma_2,
-                                sigma_3,
-                                density,
-                                interp_pts,
-                                normals,
-                                cosines,
-                                scale,
-                                thickness,
-                                effort_x,
-                                effort_y)
+        error += err_func(lib_path,
+                          exx,
+                          eyy,
+                          exy,
+                          lambda_h,
+                          lambda_11,
+                          lambda_21,
+                          lambda_51,
+                          lambda_12,
+                          lambda_22,
+                          lambda_52,
+                          lambda_13,
+                          lambda_23,
+                          lambda_53,
+                          lambda_14,
+                          lambda_24,
+                          lambda_54,
+                          lambda_15,
+                          lambda_25,
+                          lambda_55,
+                          val1,
+                          val2,
+                          val3,
+                          val4,
+                          val5,
+                          theta_1,
+                          theta_2,
+                          theta_3,
+                          sigma_1,
+                          sigma_2,
+                          sigma_3,
+                          density,
+                          interp_pts,
+                          normals,
+                          cosines,
+                          scale,
+                          thickness,
+                          effort_x,
+                          effort_y)
 
     print("\n")
     print(error)
@@ -208,6 +335,7 @@ def error_diagonals(lib_path: Path,
 def wrapper(x: np.ndarray,
             to_fit: np.ndarray,
             extra_vals: np.ndarray,
+            interp_strain,
             val1,
             val2,
             val3,
@@ -264,6 +392,7 @@ def wrapper(x: np.ndarray,
     density = 1 - (1 - dens_min) * (density_base - d_min) / (d_max - d_min)
 
     return error_diagonals(lib_path,
+                           interp_strain,
                            exxs,
                            eyys,
                            exys,
@@ -317,6 +446,7 @@ def optimize_diagonals(lib_path: Path,
                        scale: float,
                        thickness: float,
                        nb_interp_diag: int,
+                       interp_strain: bool,
                        diagonal_downscaling: int) -> None:
     """"""
 
@@ -375,6 +505,7 @@ def optimize_diagonals(lib_path: Path,
     fit = least_squares(wrapper, x0, bounds=bounds, x_scale=x_scale,
                         kwargs={'to_fit': to_fit,
                                 'extra_vals': extra_vals,
+                                'interp_strain': interp_strain,
                                 'val1': order_coeffs[0],
                                 'val2': order_coeffs[1],
                                 'val3': order_coeffs[2],
@@ -447,6 +578,7 @@ if __name__ == "__main__":
     thickness = 0.54
 
     nb_interp_diag = ref_img.shape[0]
+    interp_strain = True
     diagonal_downscaling = 20
 
     optimize_diagonals(lib_path,
@@ -462,4 +594,5 @@ if __name__ == "__main__":
                        scale,
                        thickness,
                        nb_interp_diag,
+                       interp_strain,
                        diagonal_downscaling)
