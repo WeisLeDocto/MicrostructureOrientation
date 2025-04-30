@@ -5,6 +5,8 @@ import concurrent.futures
 import numpy as np
 import itertools
 from pathlib import Path
+from tqdm.auto import tqdm
+import sys
 
 
 def worker(lib_path: Path,
@@ -194,8 +196,16 @@ def compute_stress(lib_path: Path,
 
     stress = np.empty((*exx.shape, 3), dtype=np.float64)
 
-    with concurrent.futures.ProcessPoolExecutor() as executor:
-        for i, sxx, syy, sxy in executor.map(wrapper, args, chunksize=300):
-            stress[np.unravel_index(i, exx.shape)] = (sxx, syy, sxy)
+    with tqdm(total=nb_tot,
+              desc='Compute the stress for one image',
+              file=sys.stdout,
+              colour='green',
+              position=1,
+              leave=False) as pbar:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            for i, sxx, syy, sxy in executor.map(wrapper, args, chunksize=300):
+                stress[np.unravel_index(i, exx.shape)] = (sxx, syy, sxy)
+                pbar.update()
+                pbar.refresh()
 
     return stress[:, :, 0], stress[:, :, 1], stress[:, :, 2]

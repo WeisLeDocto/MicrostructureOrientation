@@ -5,6 +5,8 @@ import numpy as np
 from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import least_squares, Bounds
 from pathlib import Path
+from tqdm.auto import tqdm
+import sys
 
 from compute_stress import compute_stress
 from image_correlation import image_correlation
@@ -147,7 +149,17 @@ def error_diagonals(lib_path: Path,
 
     error = 0.0
     for (exx, eyy, exy,
-         effort_x, effort_y) in zip(exxs, eyys, exys, efforts_x, efforts_y):
+         effort_x, effort_y) in tqdm(zip(exxs,
+                                         eyys,
+                                         exys,
+                                         efforts_x,
+                                         efforts_y),
+                                     total=len(exxs),
+                                     desc='Compute the stress for all images',
+                                     file=sys.stdout,
+                                     colour='green',
+                                     position=0,
+                                     leave=False):
         error += error_diagonal(lib_path,
                                 exx,
                                 eyy,
