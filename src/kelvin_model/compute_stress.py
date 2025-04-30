@@ -207,6 +207,5 @@ def compute_stress(lib_path: Path,
             for i, sxx, syy, sxy in executor.map(wrapper, args, chunksize=300):
                 stress[np.unravel_index(i, exx.shape)] = (sxx, syy, sxy)
                 pbar.update()
-                pbar.refresh()
 
     return stress[..., 0], stress[..., 1], stress[..., 2]
