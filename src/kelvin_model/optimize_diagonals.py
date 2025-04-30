@@ -233,6 +233,7 @@ def error_all_diagonals(lib_path: Path,
 
 def error_diagonals(lib_path: Path,
                     interp_strain: bool,
+                    verbose: bool,
                     exxs: Sequence[np.ndarray],
                     eyys: Sequence[np.ndarray],
                     exys: Sequence[np.ndarray],
@@ -328,7 +329,8 @@ def error_diagonals(lib_path: Path,
                           effort_y)
 
     print("\n")
-    print(error)
+    if verbose:
+        print(error)
     return error
 
 
@@ -336,6 +338,7 @@ def wrapper(x: np.ndarray,
             to_fit: np.ndarray,
             extra_vals: np.ndarray,
             interp_strain,
+            verbose,
             val1,
             val2,
             val3,
@@ -381,18 +384,20 @@ def wrapper(x: np.ndarray,
      lambda_14, lambda_24, lambda_54,
      lambda_15, lambda_25, lambda_55) = lambdas
 
-    print(dens_min, lambda_h,
-          lambda_11, lambda_21, lambda_51,
-          lambda_12, lambda_22, lambda_52,
-          lambda_13, lambda_23, lambda_53,
-          lambda_14, lambda_24, lambda_54,
-          lambda_15, lambda_25, lambda_55)
+    if verbose:
+        print(dens_min, lambda_h,
+              lambda_11, lambda_21, lambda_51,
+              lambda_12, lambda_22, lambda_52,
+              lambda_13, lambda_23, lambda_53,
+              lambda_14, lambda_24, lambda_54,
+              lambda_15, lambda_25, lambda_55)
 
     d_max, d_min = density_base.max(), density_base.min()
     density = 1 - (1 - dens_min) * (density_base - d_min) / (d_max - d_min)
 
     return error_diagonals(lib_path,
                            interp_strain,
+                           verbose,
                            exxs,
                            eyys,
                            exys,
@@ -447,7 +452,8 @@ def optimize_diagonals(lib_path: Path,
                        thickness: float,
                        nb_interp_diag: int,
                        interp_strain: bool,
-                       diagonal_downscaling: int) -> None:
+                       diagonal_downscaling: int,
+                       verbose: bool) -> None:
     """"""
 
     exxs, eyys, exys = zip(*(image_correlation(ref_img, def_img)
@@ -506,6 +512,7 @@ def optimize_diagonals(lib_path: Path,
                         kwargs={'to_fit': to_fit,
                                 'extra_vals': extra_vals,
                                 'interp_strain': interp_strain,
+                                'verbose': verbose,
                                 'val1': order_coeffs[0],
                                 'val2': order_coeffs[1],
                                 'val3': order_coeffs[2],
@@ -529,7 +536,7 @@ def optimize_diagonals(lib_path: Path,
                                 'thickness': thickness,
                                 'efforts_x': efforts_x,
                                 'efforts_y': efforts_y})
-    print(fit.x)
+    print(', '.join(fit.x.tolist()))
 
 
 if __name__ == "__main__":
@@ -582,6 +589,8 @@ if __name__ == "__main__":
     interp_strain = True
     diagonal_downscaling = 20
 
+    verbose = True
+
     optimize_diagonals(lib_path,
                        ref_img,
                        density_base,
@@ -596,4 +605,5 @@ if __name__ == "__main__":
                        thickness,
                        nb_interp_diag,
                        interp_strain,
-                       diagonal_downscaling)
+                       diagonal_downscaling,
+                       verbose)
