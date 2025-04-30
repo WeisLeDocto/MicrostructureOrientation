@@ -394,4 +394,61 @@ def optimize_diagonals(lib_path: Path,
 
 if __name__ == "__main__":
 
-    ...
+    ref_img_pth = Path("/home/weis/Desktop/HDR/7LX1_2/hdr/4_2414.npy")
+    ref_img = np.load(ref_img_pth)
+
+    lib_path = Path("/home/weis/Codes/tfel/build/bidouillage/Kelvin/"
+                    "kelvin_lib.so")
+
+    dens_base_pth = Path("/home/weis/Desktop/HDR/7LX1_2/images/"
+                         "2424_300_35.npy")
+    density_base = np.load(dens_base_pth)
+    roi_y = slice(1480, 2897, 1)
+    roi_x = slice(698, 1898, 1)
+    density_base = density_base[roi_x, roi_y]
+
+    gauss_fit_path = Path("/home/weis/Desktop/HDR/7LX1_2/fit/4_2414.npy")
+    gauss_fit = np.load(gauss_fit_path)
+
+    peaks_path = Path("/home/weis/Desktop/HDR/7LX1_2/peaks/4_2414.npz")
+    peaks = np.radians(np.load(peaks_path)['arr_0'])
+
+    x0 = np.concatenate((np.array((0.4451754518152804,
+                                   27.025465604983314),
+                                  dtype=np.float64),
+                         np.array((0.4881569906138767,
+                                   1.820673079991068,
+                                   0.5832944335371016),
+                                  dtype=np.float64),
+                         np.tile(np.array((0.08648376825572138,
+                                           0.001,
+                                           0.2743780032319888),
+                                          dtype=np.float64),
+                                 4)), axis=0)
+
+    def_images_paths = (Path("/home/weis/Desktop/HDR/7LX1_2/hdr/14_4196.npy"),)
+    def_images = tuple(np.load(img) for img in def_images_paths)
+
+    efforts_x = (0.868,)
+    efforts_y = (0.0,)
+
+    order_coeffs = np.array((1.0, 0.0, 1.0, 0.0, 0.0))
+
+    scale = 0.01
+    thickness = 0.54
+
+    nb_interp_diag = ref_img.shape[0]
+
+    optimize_diagonals(lib_path,
+                       ref_img,
+                       density_base,
+                       gauss_fit,
+                       peaks,
+                       x0,
+                       def_images,
+                       efforts_x,
+                       efforts_y,
+                       order_coeffs,
+                       scale,
+                       thickness,
+                       nb_interp_diag)
