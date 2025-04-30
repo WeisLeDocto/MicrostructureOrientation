@@ -321,12 +321,12 @@ def optimize_diagonals(lib_path: Path,
                              for def_img in def_images))
 
     sigma_1 = gauss_fit[:, :, 0]
-    sigma_2 = gauss_fit[:, :, 2]
-    sigma_3 = gauss_fit[:, :, 4]
+    sigma_2 = np.nan_to_num(gauss_fit[:, :, 2])
+    sigma_3 = np.nan_to_num(gauss_fit[:, :, 4])
 
     theta_1 = peaks[:, :, 0]
-    theta_2 = peaks[:, :, 1]
-    theta_3 = peaks[:, :, 2]
+    theta_2 = np.nan_to_num(peaks[:, :, 1])
+    theta_3 = np.nan_to_num(peaks[:, :, 2])
 
     interp_pts = np.empty((ref_img.shape[1], nb_interp_diag, 2),
                           dtype=np.float64)
