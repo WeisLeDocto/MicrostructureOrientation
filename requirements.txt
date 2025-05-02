@@ -5,3 +5,4 @@ cucim-cu12
 cupy-cuda12x
 numba
 scipy
+pandas

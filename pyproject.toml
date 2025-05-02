@@ -27,7 +27,8 @@ dependencies = [
     "cucim-cu12",
     "cupy-cuda12x",
     "numba",
-    "scipy"
+    "scipy",
+    "pandas"
 ]
 
 version = "0.0.1"
