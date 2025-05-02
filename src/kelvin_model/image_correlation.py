@@ -47,7 +47,7 @@ def image_correlation(ref_img: np.ndarray,
     # We use diagonalize as matrix log cannot be easily vectorized
     cauchy = np.transpose(def_grad, axes=(0, 1, 3, 2)) @ def_grad
     vals, vects = np.linalg.eigh(cauchy)
-    vals = np.log(vals)
+    vals = np.nan_to_num(np.log(vals))
     vals = np.stack((np.stack((vals[:, :, 0], np.zeros_like(vals[:, :, 0])),
                               axis=2),
                      np.stack((np.zeros_like(vals[:, :, 1]), vals[:, :, 1]),
