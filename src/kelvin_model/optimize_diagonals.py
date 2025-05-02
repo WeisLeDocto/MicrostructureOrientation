@@ -286,7 +286,7 @@ def error_diagonals(lib_path: Path,
                                      desc='Compute the stress for all images',
                                      file=sys.stdout,
                                      colour='green',
-                                     position=0,
+                                     position=1,
                                      leave=False):
         error += err_func(lib_path,
                           exx,

@@ -201,7 +201,7 @@ def compute_stress(lib_path: Path,
               desc='Compute the stress for one image',
               file=sys.stdout,
               colour='green',
-              position=1,
+              position=2,
               leave=False) as pbar:
         with concurrent.futures.ProcessPoolExecutor() as executor:
             for i, sxx, syy, sxy in executor.map(wrapper, args, chunksize=300):
