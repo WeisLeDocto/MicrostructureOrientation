@@ -76,6 +76,7 @@ if __name__ == "__main__":
     interp_strain = True
     diagonal_downscaling = 20
     verbose = False
+    dest_file = Path("/home/weis/Desktop/HDR/results.txt")
 
     for img, f_x, f_y in tqdm(zip(def_images, efforts_x, efforts_y),
                               total=len(def_images),
@@ -100,4 +101,5 @@ if __name__ == "__main__":
                            nb_interp_diag,
                            interp_strain,
                            diagonal_downscaling,
-                           verbose)
+                           verbose,
+                           dest_file)

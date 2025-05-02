@@ -452,7 +452,8 @@ def optimize_diagonals(lib_path: Path,
                        nb_interp_diag: int,
                        interp_strain: bool,
                        diagonal_downscaling: int,
-                       verbose: bool) -> None:
+                       verbose: bool,
+                       dest_file: Path) -> None:
     """"""
 
     exxs, eyys, exys = zip(*(image_correlation(ref_img, def_img)
@@ -535,4 +536,6 @@ def optimize_diagonals(lib_path: Path,
                                 'thickness': thickness,
                                 'efforts_x': efforts_x,
                                 'efforts_y': efforts_y})
-    print(', '.join(map(str, fit.x.tolist())))
+
+    with open(dest_file, "a") as file:
+        file.write(f"{', '.join(map(str, fit.x.tolist()))}\n")
