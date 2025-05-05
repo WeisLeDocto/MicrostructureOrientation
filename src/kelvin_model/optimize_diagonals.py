@@ -221,6 +221,13 @@ def error_all_diagonals(lib_path: Path,
                                    sigma_3_diags,
                                    density_diags)
 
+    # Normalize by the number of points in a digonal otherwise with fewer
+    # points one cannot reach the target force with the same properties
+    downscale_factor_h = interp_pts.shape[1] / density.shape[0]
+    # Normalize by the number of diagonals because the more diagonals the
+    # greater the error
+    downscale_factor_w = interp_pts.shape[0]
+
     stress = np.stack((np.stack((sxx, sxy), axis=2),
                        np.stack((sxy, syy), axis=2)), axis=3)
     proj = (stress @ normals).squeeze() * scale * thickness / cosines
@@ -228,7 +235,7 @@ def error_all_diagonals(lib_path: Path,
 
     return np.sum(np.sqrt(np.power(sum_diags[:, 0] - effort_x, 2) +
                           np.power(sum_diags[:, 1] - effort_y, 2)),
-                  axis=None) / interp_pts.shape[0]
+                  axis=None) / downscale_factor_w / downscale_factor_h
 
 
 def error_diagonals(lib_path: Path,
