@@ -4,8 +4,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import re
-from tqdm.auto import tqdm
-import sys
 
 from optimize_diagonals import optimize_diagonals
 
