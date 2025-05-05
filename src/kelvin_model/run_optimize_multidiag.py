@@ -73,7 +73,7 @@ if __name__ == "__main__":
     nb_interp_diag = ref_img.shape[0]
     interp_strain = True
     diagonal_downscaling = 20
-    verbose = True
+    verbose = False
     dest_file = Path("/home/weis/Desktop/HDR/results_multi.txt")
 
     optimize_diagonals(lib_path,
