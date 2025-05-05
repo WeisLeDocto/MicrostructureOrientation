@@ -232,10 +232,11 @@ def error_all_diagonals(lib_path: Path,
                        np.stack((sxy, syy), axis=2)), axis=3)
     proj = (stress @ normals).squeeze() * scale * thickness / cosines
     sum_diags = np.sum(proj, axis=1)
+    sum_diags /= downscale_factor_h
 
     return np.sum(np.sqrt(np.power(sum_diags[:, 0] - effort_x, 2) +
                           np.power(sum_diags[:, 1] - effort_y, 2)),
-                  axis=None) / downscale_factor_w / downscale_factor_h
+                  axis=None) / downscale_factor_w
 
 
 def error_diagonals(lib_path: Path,
