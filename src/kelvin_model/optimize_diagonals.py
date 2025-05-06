@@ -227,6 +227,8 @@ def error_all_diagonals(lib_path: Path,
     # Normalize by the number of diagonals because the more diagonals the
     # greater the error
     downscale_factor_w = interp_pts.shape[0]
+    # Normalize by the effort to get a relative error
+    effort_norm = np.sqrt(effort_x ** 2 + effort_y ** 2)
 
     stress = np.stack((np.stack((sxx, sxy), axis=2),
                        np.stack((sxy, syy), axis=2)), axis=3)
@@ -236,7 +238,7 @@ def error_all_diagonals(lib_path: Path,
 
     return np.sum(np.sqrt(np.power(sum_diags[:, 0] - effort_x, 2) +
                           np.power(sum_diags[:, 1] - effort_y, 2)),
-                  axis=None) / downscale_factor_w
+                  axis=None) / downscale_factor_w / effort_norm
 
 
 def error_diagonals(lib_path: Path,
