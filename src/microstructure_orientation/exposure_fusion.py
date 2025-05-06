@@ -7,13 +7,13 @@ from tqdm.auto import tqdm
 import sys
 import cv2
 from re import fullmatch
+from collections.abc import Sequence
 
 # TODO: filter images before passing here
 
 
-def exposure_fusion(images_path: Path,
+def exposure_fusion(images_paths: Sequence[Sequence[Path]],
                     dest_path: Path,
-                    nb_batch: int,
                     roi: tuple[slice, slice]) -> None:
     """"""
 
@@ -21,16 +21,15 @@ def exposure_fusion(images_path: Path,
     dest_path.mkdir(parents=False, exist_ok=True)
 
     # Iterate over batches of images from a same acquisition step
-    images = tuple(batched(sorted(images_path.glob('*.npy')), nb_batch))
-    for i, step in tqdm(enumerate(images),
-                        total=len(images),
+    for i, step in tqdm(enumerate(images_paths),
+                        total=len(images_paths),
                         desc='Applying exposure fusion',
                         file=sys.stdout,
                         colour='green',
                         mininterval=0.01,
                         maxinterval=0.1):
         i: int
-        step: tuple[Path, ...]
+        step: Sequence[Path]
 
         # Apply the exposure fusion
         exp_fus = cv2.createMergeMertens(
