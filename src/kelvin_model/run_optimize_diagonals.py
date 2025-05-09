@@ -8,6 +8,7 @@ from tqdm.auto import tqdm
 import sys
 
 from .optimize_diagonals import optimize_diagonals
+from . import kelvin_lib_path
 
 if __name__ == "__main__":
 
@@ -16,8 +17,7 @@ if __name__ == "__main__":
     ref_img = np.load(ref_img_pth)
 
     # Path to the shared library for computing the stress
-    lib_path = Path("/home/weis/Codes/tfel/build/bidouillage/Kelvin/"
-                    "kelvin_lib.so")
+    lib_path = Path(kelvin_lib_path)
 
     # Base image for computing the density
     dens_base_pth = Path("/home/weis/Desktop/HDR/7LX1_2/images/"

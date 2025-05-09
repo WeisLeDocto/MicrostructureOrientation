@@ -34,6 +34,11 @@ dependencies = [
 
 version = "0.0.1"
 
+[tool.setuptools]
+ext-modules = [
+  {name = "kelvin_model.kelvin_lib", sources = ["src/kelvin_model/src/kelvin_lib.cpp"]}
+]
+
 [tool.setuptools.packages.find]
 where = ["src"]
 namespaces = false
