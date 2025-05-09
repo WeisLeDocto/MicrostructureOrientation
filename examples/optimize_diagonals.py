@@ -7,7 +7,7 @@ import re
 from tqdm.auto import tqdm
 import sys
 
-from .. import kelvin_lib_path,optimize_diagonals
+from kelvin_model import kelvin_lib_path, optimize_diagonals
 
 if __name__ == "__main__":
 

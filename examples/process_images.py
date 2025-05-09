@@ -3,8 +3,8 @@
 from pathlib import Path
 from itertools import batched, islice
 
-from .. import (make_plots, gaussian_fit, detect_peaks, apply_gabor_filter,
-                exposure_fusion)
+from microstructure_orientation import (make_plots, gaussian_fit, detect_peaks,
+                                        apply_gabor_filter, exposure_fusion)
 
 if __name__ == '__main__':
 

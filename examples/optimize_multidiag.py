@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import re
 
-from .. import optimize_diagonals, kelvin_lib_path
+from kelvin_model import optimize_diagonals, kelvin_lib_path
 
 if __name__ == "__main__":
 
