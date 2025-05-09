@@ -10,52 +10,52 @@ import sys
 from math import prod
 
 
-def worker(lib_path: Path,
-           i: int,
-           exx: float,
-           eyy: float,
-           exy: float,
-           lambda_h: float,
-           lambda_11: float,
-           lambda_21: float,
-           lambda_31: float,
-           lambda_41: float,
-           lambda_51: float,
-           lambda_12: float,
-           lambda_22: float,
-           lambda_32: float,
-           lambda_42: float,
-           lambda_52: float,
-           lambda_13: float,
-           lambda_23: float,
-           lambda_33: float,
-           lambda_43: float,
-           lambda_53: float,
-           lambda_14: float,
-           lambda_24: float,
-           lambda_34: float,
-           lambda_44: float,
-           lambda_54: float,
-           lambda_15: float,
-           lambda_25: float,
-           lambda_35: float,
-           lambda_45: float,
-           lambda_55: float,
-           val1: float,
-           val2: float,
-           val3: float,
-           val4: float,
-           val5: float,
-           theta_1: float,
-           theta_2: float,
-           theta_3: float,
-           sigma_1: float,
-           sigma_2: float,
-           sigma_3: float,
-           density: float,
-           sxx: ctypes.c_double,
-           syy: ctypes.c_double,
-           sxy: ctypes.c_double) -> tuple[int, float, float, float]:
+def _worker(lib_path: Path,
+            i: int,
+            exx: float,
+            eyy: float,
+            exy: float,
+            lambda_h: float,
+            lambda_11: float,
+            lambda_21: float,
+            lambda_31: float,
+            lambda_41: float,
+            lambda_51: float,
+            lambda_12: float,
+            lambda_22: float,
+            lambda_32: float,
+            lambda_42: float,
+            lambda_52: float,
+            lambda_13: float,
+            lambda_23: float,
+            lambda_33: float,
+            lambda_43: float,
+            lambda_53: float,
+            lambda_14: float,
+            lambda_24: float,
+            lambda_34: float,
+            lambda_44: float,
+            lambda_54: float,
+            lambda_15: float,
+            lambda_25: float,
+            lambda_35: float,
+            lambda_45: float,
+            lambda_55: float,
+            val1: float,
+            val2: float,
+            val3: float,
+            val4: float,
+            val5: float,
+            theta_1: float,
+            theta_2: float,
+            theta_3: float,
+            sigma_1: float,
+            sigma_2: float,
+            sigma_3: float,
+            density: float,
+            sxx: ctypes.c_double,
+            syy: ctypes.c_double,
+            sxy: ctypes.c_double) -> tuple[int, float, float, float]:
     """Wrapper around the C++ executable that performs the stress computation.
 
     Args:
@@ -160,13 +160,14 @@ def worker(lib_path: Path,
     return i, sxx.value, syy.value, sxy.value
 
 
-def wrapper(args: tuple[Path, int, float, float, float, float, float, float,
-                        float, float, float, float, float, float, float, float,
-                        float, float, float, float, float, float, float, float,
-                        float, float, float, float, float, float, float, float,
-                        float, float, float, float, float, float, float, float,
-                        float, float, float, ctypes.c_double, ctypes.c_double,
-                        ctypes.c_double]) -> tuple[int, float, float, float]:
+def _wrapper(args: tuple[Path, int, float, float, float, float, float, float,
+                         float, float, float, float, float, float, float,
+                         float, float, float, float, float, float, float,
+                         float, float, float, float, float, float, float,
+                         float, float, float, float, float, float, float,
+                         float, float, float, float, float, float, float,
+                         ctypes.c_double, ctypes.c_double, ctypes.c_double]
+             ) -> tuple[int, float, float, float]:
     """Wrapper for passing the arguments separately to the worker, for better
     clarity.
 
@@ -178,7 +179,7 @@ def wrapper(args: tuple[Path, int, float, float, float, float, float, float,
         values for xx, yy and xy.
     """
 
-    return worker(*args)
+    return _worker(*args)
 
 
 def compute_stress(lib_path: Path,
@@ -326,7 +327,7 @@ def compute_stress(lib_path: Path,
               position=2,
               leave=False) as pbar:
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            for i, sxx, syy, sxy in executor.map(wrapper, args, chunksize=300):
+            for i, sxx, syy, sxy in executor.map(_wrapper, args, chunksize=300):
                 stress[np.unravel_index(i, exx.shape)] = (sxx, syy, sxy)
                 pbar.update()
 

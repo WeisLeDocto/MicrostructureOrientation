@@ -13,9 +13,9 @@ import os
 NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
 
 
-def process_gabor_gpu(image: np.ndarray,
-                      kernels: dict[int, cp.ndarray],
-                      nb_angles: int) -> np.ndarray:
+def _process_gabor_gpu(image: np.ndarray,
+                       kernels: dict[int, cp.ndarray],
+                       nb_angles: int) -> np.ndarray:
     """Performs a single filtering step of an image by multiple Gabor kernel on
     the GPU.
 
@@ -100,7 +100,7 @@ def apply_gabor_filter(src_path: Path,
 
         # Apply the filters a first time, and keep only the response intensity
         img = np.load(img_path)
-        res = process_gabor_gpu(img, kernels, NB_ANGLES)
+        res = _process_gabor_gpu(img, kernels, NB_ANGLES)
         intensity = (np.mean(res, axis=2) /
                      np.maximum(img, np.percentile(img, 2)))
 
@@ -113,7 +113,7 @@ def apply_gabor_filter(src_path: Path,
                      (intensity.max() - intensity.min())).astype('float64')
 
         # Apply the filter a second time, and this time save the result as is
-        res = process_gabor_gpu(intensity, kernels, NB_ANGLES)
+        res = _process_gabor_gpu(intensity, kernels, NB_ANGLES)
         np.save(dest_path / img_path.name, res)
 
     # Free up some GPU memory as the kernels are no longer needed

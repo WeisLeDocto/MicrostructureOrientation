@@ -4,11 +4,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import re
-from tqdm.auto import tqdm
-import sys
 
-from .optimize_diagonals import optimize_diagonals
-from . import kelvin_lib_path
+from .. import optimize_diagonals, kelvin_lib_path
 
 if __name__ == "__main__":
 
@@ -88,31 +85,23 @@ if __name__ == "__main__":
     interp_strain = True
     diagonal_downscaling = 20
     verbose = False
-    dest_file = Path("/home/weis/Desktop/HDR/results.txt")
+    dest_file = Path("/home/weis/Desktop/HDR/results_multi.txt")
 
-    # Optimize on each single image individually
-    for img, f_x, f_y in tqdm(zip(def_images, efforts_x, efforts_y),
-                              total=len(def_images),
-                              desc='Perform optimization on each single image',
-                              file=sys.stdout,
-                              colour='green',
-                              position=0,
-                              leave=True):
-
-        optimize_diagonals(lib_path,
-                           ref_img,
-                           density_base,
-                           gauss_fit,
-                           peaks,
-                           x0,
-                           (img,),
-                           (f_x,),
-                           (f_y,),
-                           order_coeffs,
-                           scale,
-                           thickness,
-                           nb_interp_diag,
-                           interp_strain,
-                           diagonal_downscaling,
-                           verbose,
-                           dest_file)
+    # Optimize an all the images at once
+    optimize_diagonals(lib_path,
+                       ref_img,
+                       density_base,
+                       gauss_fit,
+                       peaks,
+                       x0,
+                       def_images,
+                       efforts_x,
+                       efforts_y,
+                       order_coeffs,
+                       scale,
+                       thickness,
+                       nb_interp_diag,
+                       interp_strain,
+                       diagonal_downscaling,
+                       verbose,
+                       dest_file)

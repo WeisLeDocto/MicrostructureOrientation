@@ -3,11 +3,8 @@
 from pathlib import Path
 from itertools import batched, islice
 
-from .exposure_fusion import exposure_fusion
-from .gabor_filter import apply_gabor_filter
-from .peak_detection import detect_peaks
-from .gaussian_fit import gaussian_fit
-from .make_plots import make_plots
+from .. import (make_plots, gaussian_fit, detect_peaks, apply_gabor_filter,
+                exposure_fusion)
 
 if __name__ == '__main__':
 

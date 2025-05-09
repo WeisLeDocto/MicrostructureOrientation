@@ -2,7 +2,8 @@
 
 from .compute_stress import compute_stress
 from .image_correlation import image_correlation
-from .optimize_diagonals import optimize_diagonals
+from .optimize_diagonals import (optimize_diagonals, error_diags_only,
+                                 error_all_image, error_diagonals)
 
 import importlib.util
 

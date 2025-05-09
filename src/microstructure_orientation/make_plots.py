@@ -10,7 +10,7 @@ import os
 NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
 
 
-def sort_images(path: Path) -> int:
+def _sort_images(path: Path) -> int:
     """Convenience function extracting the index from the name of an image
     Path."""
 
@@ -35,8 +35,8 @@ def make_plots(hdr_folder: Path,
 
     # Create the destination folder and parse the input folders
     anim_folder.mkdir(parents=False, exist_ok=True)
-    images = tuple(sorted(gabor_folder.glob('*.npy'), key=sort_images))
-    hdrs = tuple(sorted(hdr_folder.glob('*.npy'), key=sort_images))
+    images = tuple(sorted(gabor_folder.glob('*.npy'), key=_sort_images))
+    hdrs = tuple(sorted(hdr_folder.glob('*.npy'), key=_sort_images))
 
     ang = np.linspace(0, 180, NB_ANGLES)
 
@@ -58,7 +58,7 @@ def make_plots(hdr_folder: Path,
     cax2 = divider_2.append_axes('bottom', size='5%', pad=0.05)
     fig.colorbar(img2, cax=cax2, orientation='horizontal')
 
-    def update(frame):
+    def _update(frame):
         """Updates the current frame with the next one to create an
         animation."""
 
@@ -67,7 +67,7 @@ def make_plots(hdr_folder: Path,
         return img1, img2
 
     # Animate the figure over all the acquired time points
-    ani = anim.FuncAnimation(fig=fig, func=update, frames=len(images) - 1,
+    ani = anim.FuncAnimation(fig=fig, func=_update, frames=len(images) - 1,
                              interval=500, repeat=True, repeat_delay=2000)
     ani.save(anim_folder / "orientation_2.mkv", writer='ffmpeg', fps=2)
     plt.close()
@@ -78,7 +78,7 @@ def make_plots(hdr_folder: Path,
                      cmap='plasma', clim=(0, 0.25))
     plt.colorbar()
 
-    def update(frame):
+    def _update(frame):
         """Updates the current frame with the next one to create an
         animation."""
 
@@ -87,7 +87,7 @@ def make_plots(hdr_folder: Path,
         return img
 
     # Animate the figure over all the acquired time points
-    ani = anim.FuncAnimation(fig=fig, func=update, frames=len(images) - 1,
+    ani = anim.FuncAnimation(fig=fig, func=_update, frames=len(images) - 1,
                              interval=500, repeat=False)
     ani.save(anim_folder / "intensity.gif", writer='imagemagick', fps=2)
     plt.close()
