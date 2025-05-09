@@ -2,20 +2,27 @@
 
 import numpy as np
 from pathlib import Path
-from itertools import batched
 from tqdm.auto import tqdm
 import sys
 import cv2
 from re import fullmatch
 from collections.abc import Sequence
 
-# TODO: filter images before passing here
-
 
 def exposure_fusion(images_paths: Sequence[Sequence[Path]],
                     dest_path: Path,
                     roi: tuple[slice, slice]) -> None:
-    """"""
+    """Performs exposure fusion on the provided images, to include information
+    of images acquired with different exposure times into a single image.
+
+    Args:
+        images_paths: Sequence containing Paths to the images to use for
+            performing the exposure fusion. The images from a same batch are
+            grouped in a same sequence.
+        dest_path: The folder where to write the exposure fusion images.
+        roi: Tuple of slices indicating which part of the base image to keep
+            after performing exposure fusion.
+    """
 
     # Create the folder containing the exposure fused images
     dest_path.mkdir(parents=False, exist_ok=True)

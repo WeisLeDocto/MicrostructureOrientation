@@ -16,7 +16,19 @@ NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
 def process_gabor_gpu(image: np.ndarray,
                       kernels: dict[int, cp.ndarray],
                       nb_angles: int) -> np.ndarray:
-    """"""
+    """Performs a single filtering step of an image by multiple Gabor kernel on
+    the GPU.
+
+    Args:
+        image: The exposure fusion image on which to perform the filtering.
+        kernels: A dictionary containing for each orientation the associated
+            Gabor filter, in GPU memory.
+        nb_angles: Number of successive angles to use for the filters.
+
+    Returns:
+        Result numpy array containing for each orientation the intensity of the
+        response to the Gabor filters.
+    """
 
     # Load input image on GPU and prepare the output array
     img_gpu = cp.asarray(image, dtype='float32')
@@ -45,7 +57,15 @@ def process_gabor_gpu(image: np.ndarray,
 def apply_gabor_filter(src_path: Path,
                        dest_path: Path,
                        filter_wavelength: int) -> None:
-    """"""
+    """Applies a Gabor filter twice on exposure fusion images, to detect the
+    orientation of fibers.
+
+    Args:
+        src_path: Path to the folder containing the exposure fusion images.
+        dest_path: Path to the folder where to write the filtered images.
+        filter_wavelength: Spatial wavelength to use for the Gabor filter,
+            roughly equal to the width of the fibers to detect.
+    """
 
     # Create the folder containing the output arrays
     dest_path.mkdir(parents=False, exist_ok=True)

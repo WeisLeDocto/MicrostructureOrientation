@@ -18,7 +18,14 @@ NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
 def rearrange(array_in: cp.ndarray,
               min_idx: cp.ndarray,
               array_out: cp.ndarray) -> None:
-    """"""
+    """Rearranges the elements of 1-dimensional arrays on a 3D grid so that the
+    minimum value is located on one end of the new array.
+
+    Args:
+        array_in: The arrays to rearrange.
+        min_idx: The indexes of the minimum values.
+        array_out: Buffer for the rearranged arrays.
+    """
 
     x, y = cuda.grid(2)
     if x < array_in.shape[0] and y < array_in.shape[1]:
@@ -34,7 +41,13 @@ def rearrange(array_in: cp.ndarray,
                      types.int32[:, :, :]))
 def make_peak_mask(peaks: cp.ndarray,
                    mask: cp.ndarray) -> None:
-    """"""
+    """Generates a mask of 0 and 1 indicating for each point on a 3D grid if it
+    is the location of a peak or not.
+
+    Args:
+        peaks: Array containing the indexes of the peaks.
+        mask: Array containing the peak mask.
+    """
 
     x, y, z = cuda.grid(3)
     if x < peaks.shape[0] and y < peaks.shape[1] and z < peaks.shape[2]:
@@ -47,7 +60,13 @@ def make_peak_mask(peaks: cp.ndarray,
                      types.int32[:, :, :]))
 def local_maxima_gpu(data: cp.ndarray,
                      midpoints: cp.ndarray) -> None:
-    """"""
+    """Finds the local maxima of 1D arrays on a 3D grid.
+
+    Args:
+        data: Raw data over which to detect the local maxima.
+        midpoints: Array containing either -1 where there is no local maximum,
+            or the index of the local maximum.
+    """
 
     x, y, z = cuda.grid(3)
     if x < data.shape[0] and y < data.shape[1] and z < data.shape[2] - 2:
@@ -78,7 +97,17 @@ def peak_prominences_gpu(data: cp.ndarray,
                          prominences: cp.ndarray,
                          left_bases: cp.ndarray,
                          right_bases: cp.ndarray) -> None:
-    """"""
+    """Computes the prominence of the detected peaks, as well as the extent of
+    their left and right bases.
+
+    Args:
+        data: The raw data over which to compute the peaks prominences.
+        peak_mask: A mask indicating where the peaks are located.
+        prominences: The array where the prominences values will be stored.
+        left_bases: Array for storing the extent of the left base of the peaks.
+        right_bases: Array for storing the extent of the right base of the
+            peaks.
+    """
 
     x, y, z = cuda.grid(3)
     if x < data.shape[0] and y < data.shape[1] and z < data.shape[2]:
@@ -124,7 +153,20 @@ def peak_width_gpu(data: cp.ndarray,
                    right_bases: cp.ndarray,
                    widths: cp.ndarray,
                    width_heights: cp.ndarray) -> None:
-    """"""
+    """Computes the width of the detected peaks, as well as the height at which
+    this width was calculated.
+
+    Args:
+        data: The raw data over which to compute the peaks widths.
+        peak_mask: A mask indicating where the peaks are located.
+        prominences: Array containing the prominences of the peaks.
+        left_bases: Array containing the extent of the left bases of the peaks.
+        right_bases: Array containing the extent of the right bases of the
+            peaks.
+        widths: Array where to store the widths of the peaks.
+        width_heights: Array where to store the height at which the widths of
+            the arrays are located.
+    """
 
     x, y, z = cuda.grid(3)
     if x < data.shape[0] and y < data.shape[1] and z < data.shape[2]:
@@ -158,7 +200,19 @@ def peak_width_gpu(data: cp.ndarray,
 
 def find_peaks_gpu(gabor_data_cpu: np.ndarray,
                    ang_cpu: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """"""
+    """Given the angular response to Gabor filters, detects up to three peaks
+    with sufficient prominence and width in the signal. Also computes an
+    estimation of parameters to fit a periodic gaussian curve on the response.
+
+    Args:
+        gabor_data_cpu: Angular response to the Gabor filter.
+        ang_cpu: Array of angles over which the response to the Gabor filter
+            was computed.
+
+    Returns:
+        The location of the peaks, and an estimation of parameters for fitting
+        a gaussian curve over the angular response.
+    """
 
     # Load data into GPU memory
     gabor_data = cp.asarray(gabor_data_cpu, dtype=cp.float32)
@@ -270,7 +324,15 @@ def find_peaks_gpu(gabor_data_cpu: np.ndarray,
 
 def detect_peaks(src_path: Path,
                  dest_path: Path) -> None:
-    """"""
+    """Given the angular response to Gabor filters, detects up to three peaks
+    with sufficient prominence and width in the signal. Also computes an
+    estimation of parameters to fit a periodic gaussian curve on the response.
+
+    Args:
+        src_path: Path to the folder containing the angular response to Gabor
+            filter.
+        dest_path: Path to the folder where to store the detected peaks.
+    """
 
     # Create the destination folder and load the input data
     dest_path.mkdir(parents=False, exist_ok=True)

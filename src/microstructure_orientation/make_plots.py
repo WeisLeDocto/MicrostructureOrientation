@@ -11,7 +11,8 @@ NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
 
 
 def sort_images(path: Path) -> int:
-    """"""
+    """Convenience function extracting the index from the name of an image
+    Path."""
 
     sec, = fullmatch(r'(\d+)_\d+\.npy', path.name).groups()
     return int(sec)
@@ -20,7 +21,17 @@ def sort_images(path: Path) -> int:
 def make_plots(hdr_folder: Path,
                gabor_folder: Path,
                anim_folder: Path) -> None:
-    """"""
+    """Uses the data from the image processing to generate animated plots of
+    the angular response to Gabor filter, intensity of the response to Gabor
+    filter, and of the exposure fusion images.
+
+    Args:
+        hdr_folder: Path to the folder containing the exposure fusion images.
+        gabor_folder: Path to the folder containing the angular response to
+            the Gabor filter.
+        anim_folder: Path to the folder where to write the generated
+            animations.
+    """
 
     # Create the destination folder and parse the input folders
     anim_folder.mkdir(parents=False, exist_ok=True)
@@ -48,7 +59,8 @@ def make_plots(hdr_folder: Path,
     fig.colorbar(img2, cax=cax2, orientation='horizontal')
 
     def update(frame):
-        """"""
+        """Updates the current frame with the next one to create an
+        animation."""
 
         img1.set_array(ang[np.argmax(np.load(images[frame + 1]), axis=2)])
         img2.set_array(np.load(hdrs[frame + 1]))
@@ -67,7 +79,8 @@ def make_plots(hdr_folder: Path,
     plt.colorbar()
 
     def update(frame):
-        """"""
+        """Updates the current frame with the next one to create an
+        animation."""
 
         img.set_array(np.average(np.load(images[frame + 1]), axis=2))
         img.set_clim(0, 0.25)

@@ -17,7 +17,7 @@ NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
           device=True)
 def gpu_exp(array_in: cp.ndarray,
             array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Performs element-wise exponentiation on a 1-dimensional array."""
 
     for i in range(array_in.shape[0]):
         array_out[i] = math.exp(array_in[i])
@@ -31,7 +31,8 @@ def gpu_exp(array_in: cp.ndarray,
 def gpu_pow(array_in: cp.ndarray,
             power: int,
             array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Performs element-wise elevation to the given power on a 1-dimensional
+    array."""
 
     for i in range(array_in.shape[0]):
         array_out[i] = math.pow(array_in[i], power)
@@ -43,7 +44,7 @@ def gpu_pow(array_in: cp.ndarray,
           device=True)
 def gpu_minus(array_in: cp.ndarray,
               array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Equivalent to multiplying a 1-dimensional array by -1."""
 
     for i in range(array_in.shape[0]):
        array_out[i] = -array_in[i]
@@ -57,7 +58,8 @@ def gpu_minus(array_in: cp.ndarray,
 def gpu_sub(array_in: cp.ndarray,
             val: float,
             array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Subtracts a constant value to all the elements of a 1-dimensional
+    array."""
 
     for i in range(array_in.shape[0]):
         array_out[i] = array_in[i] - val
@@ -71,7 +73,8 @@ def gpu_sub(array_in: cp.ndarray,
 def gpu_mul(array_in: cp.ndarray,
             val: float,
             array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Multiplies all the elements of a 1-dimensional array by a constant
+    value."""
 
     for i in range(array_in.shape[0]):
         array_out[i] = array_in[i] * val
@@ -85,7 +88,8 @@ def gpu_mul(array_in: cp.ndarray,
 def gpu_div(array_in: cp.ndarray,
             val: float,
             array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Divides all the elements of a 1-dimensional array by a constant
+    value."""
 
     for i in range(array_in.shape[0]):
         array_out[i] = array_in[i] / val
@@ -99,7 +103,7 @@ def gpu_div(array_in: cp.ndarray,
 def gpu_array_add(array_in_1: cp.ndarray,
                   array_in_2: cp.ndarray,
                   array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Performs element-wise addition of two 1-dimensional arrays."""
 
     for i in range(array_in_1.shape[0]):
         array_out[i] = array_in_1[i] + array_in_2[i]
@@ -113,7 +117,7 @@ def gpu_array_add(array_in_1: cp.ndarray,
 def gpu_array_sub(array_in_1: cp.ndarray,
                   array_in_2: cp.ndarray,
                   array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Performs element-wise subtraction of two 1-dimensional arrays."""
 
     for i in range(array_in_1.shape[0]):
         array_out[i] = array_in_1[i] - array_in_2[i]
@@ -127,7 +131,7 @@ def gpu_array_sub(array_in_1: cp.ndarray,
 def gpu_array_mul(array_in_1: cp.ndarray,
                   array_in_2: cp.ndarray,
                   array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Performs element-wise multiplication of two 1-dimensional arrays."""
 
     for i in range(array_in_1.shape[0]):
         array_out[i] = array_in_1[i] * array_in_2[i]
@@ -141,7 +145,7 @@ def gpu_array_mul(array_in_1: cp.ndarray,
 def gpu_array_div(array_in_1: cp.ndarray,
                   array_in_2: cp.ndarray,
                   array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Performs element-wise division of two 1-dimensional arrays."""
 
     for i in range(array_in_1.shape[0]):
         array_out[i] = array_in_1[i] / array_in_2[i]
@@ -153,7 +157,7 @@ def gpu_array_div(array_in_1: cp.ndarray,
           device=True)
 def gpu_array_copy(array_in_1: cp.ndarray,
                    array_in_2: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Copies the values of a 1-dimensional array into another array."""
 
     for i in range(array_in_1.shape[0]):
         array_in_2[i] = array_in_1[i]
@@ -163,7 +167,7 @@ def gpu_array_copy(array_in_1: cp.ndarray,
 @cuda.jit(types.float32(types.float32[:]),
           device=True)
 def gpu_sum(array_in: cp.ndarray) -> float:
-    """"""
+    """Computes the sum of all the elements of a 1-dimensional array."""
 
     ret = 0.
     for i in range(array_in.shape[0]):
@@ -191,14 +195,34 @@ def periodic_gauss_gpu(x: cp.ndarray,
                        sigma_2: float,
                        a_2: float,
                        sigma_3: float,
-                        a_3: float,
+                       a_3: float,
                        b: float,
                        mu_1: float,
                        mu_2: float,
                        mu_3: float,
                        n: int,
                        array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Computes the sum of three periodic gaussian curves of the input array,
+    using the provided gaussian parameters.
+
+    Args:
+        x: The array over which to compute the gaussians.
+        sigma_1: Standard deviation for the first gaussian.
+        a_1: Multiplicative factor for the first gaussian.
+        sigma_2: Standard deviation for the second gaussian.
+        a_2: Multiplicative factor for the second gaussian.
+        sigma_3: Standard deviation for the second gaussian.
+        a_3: Multiplicative factor for the second gaussian.
+        b: Offset, common to all the gaussians.
+        mu_1: Center value of the first gaussian.
+        mu_2: Center value of the second gaussian.
+        mu_3: Center value of the third gaussian.
+        n: Number of gaussians to compute, between 1 and 3.
+        array_out: The array in which to store the result.
+
+    Returns:
+        The sum of the three periodic gaussians over the input array.
+    """
 
     if n == 1:
         for i in range(x.shape[0]):
@@ -262,7 +286,29 @@ def periodic_gaussian_derivative(x: cp.ndarray,
                                  mu_3: float,
                                  n: int,
                                  array_out: cp.ndarray) -> cp.ndarray:
-    """"""
+    """Computes the derivatives of the periodic gaussian defined previously
+    with respect to all its parameters.
+
+    Args:
+        x: The array over which to compute the gaussian derivatives.
+        y: Array containing the measured values from real-world data.
+        sigma_1: Standard deviation for the first gaussian derivative.
+        a_1: Multiplicative factor for the first gaussian derivative.
+        sigma_2: Standard deviation for the second gaussian derivative.
+        a_2: Multiplicative factor for the second gaussian derivative.
+        sigma_3: Standard deviation for the second gaussian derivative.
+        a_3: Multiplicative factor for the second gaussian derivative.
+        b: Offset, common to all the gaussian derivatives.
+        mu_1: Center value of the first gaussian derivative.
+        mu_2: Center value of the second gaussian derivative.
+        mu_3: Center value of the third gaussian derivative.
+        n: Number of gaussian derivatives to compute, between 1 and 3.
+        array_out: The array in which to store the result.
+
+    Returns:
+        An array containing for each of the parameters of the periodic gaussian
+        the value of its derivative with respect to this parameter.
+    """
 
     # Define buffers used during calculation and stored in memory
     buf = cuda.local.array((NB_ANGLES,), dtype=types.float32)
@@ -476,7 +522,28 @@ def gradient_descent(n_peak: int,
                      mu: cp.ndarray,
                      thresh: float,
                      max_iter: int) -> cp.ndarray:
-    """"""
+    """Performs gradient descent to find the set of parameters that minimizes
+    the difference between the computed periodic gaussians and the response to
+    the Gabor filters.
+
+    Args:
+        n_peak: Number of peaks over which to compute the periodic gaussian.
+        x_data: Array containing the angles over which to compute the
+            periodic gaussian.
+        y_data: Array containing measured data, target to the gradient descent.
+        params: Array containing a first estimation of the optimal parameters
+            of the periodic gaussian.
+        mu: Array containing the angular location of the centers of the
+            gaussians.
+        thresh: Once the difference between two residuals is lower than this
+            value, the algorithm stops.
+        max_iter: Once that many iterations have been executed, the algorithm
+            stops.
+
+    Returns:
+        The set of parameters that minimize the difference between the computed
+        data and the periodic gaussians.
+    """
 
     if n_peak == 0:
         return params
@@ -601,7 +668,23 @@ def fit_gpu(n_peak: cp.ndarray,
             mu: cp.ndarray,
             thresh: float,
             max_iter: int) -> None:
-    """"""
+    """Wrapper around the gradient_descent function, to apply it on all the
+    pixels of the input image.
+
+    Args:
+        n_peak: Number of detected peaks in the Gabor response.
+        x_data: Array containing the angles over which the Gabor response was
+            computed.
+        y_data: Array containing the angular response to Gabor filters.
+        params: Array containing a first estimation of the optimal parameters
+            of the periodic gaussian.
+        mu: Array containing the angular location of the centers of the
+            gaussians.
+        thresh: Once the difference between two residuals is lower than this
+            value, the algorithm stops.
+        max_iter: Once that many iterations have been executed, the algorithm
+            stops.
+    """
 
     x, y = cuda.grid(2)
     # if x == 1 and y == 3:
@@ -622,7 +705,18 @@ def fit_gpu(n_peak: cp.ndarray,
 def gaussian_fit(peak_folder: Path,
                  gabor_folder: Path,
                  dest_path: Path) -> None:
-    """"""
+    """From the response to Gabor filter, and a set of estimated parameters,
+    determines for each pixel the set of parameters that give the best fit of
+    the response with periodic gaussian curves.
+
+    Args:
+        peak_folder: Path to the folder containing the sets of estimated
+            parameters for the gaussian fit.
+        gabor_folder: Path to the folder containing the responses to the Gabor
+            filter.
+        dest_path: Path to the folder where to write the set of optimized
+            parameters.
+    """
 
     # Create the destination folder and load the input data
     dest_path.mkdir(parents=False, exist_ok=True)

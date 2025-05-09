@@ -7,7 +7,16 @@ import cv2
 def image_correlation(ref_img: np.ndarray,
                       def_img: np.ndarray
                       ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """"""
+    """Performs digital image correlation on the two provided images, using
+    cv2's DISFlow, and computes the Hencky strain.
+
+    Args:
+        ref_img: The reference image for correlation.
+        def_img: The deformed image.
+
+    Returns:
+        The xx, yy, and xy components of the Hencky strain, as numpy arrays.
+    """
 
     ref_img_cont = ((ref_img - ref_img.min() + 1) /
                     (ref_img.max() - ref_img.min() + 1) * 255).astype(np.uint8)

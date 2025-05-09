@@ -8,7 +8,10 @@
 
 #include "kelvin_lib.hpp"
 
-
+/**
+* Performs the integration of the stiffness tensor multiplied by a Gaussian
+* signal over the entire angle space.
+*/
 Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h, 
                                                      double lambda_1, 
                                                      double lambda_2, 
@@ -20,7 +23,8 @@ Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h,
                                                      bool skip_z = false) {
   
   Eigen::Matrix<double, 6, 6> integrated = Eigen::Matrix<double, 6, 6>::Zero();
-  
+
+  /// Pe-compute some terms to optimize speed and avoid redundancy
   const double lamh_m = pow(lambda_h, m);
   const double lam1_m = pow(lambda_1, m);
   const double lam2_m = pow(lambda_2, m);
@@ -45,7 +49,8 @@ Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h,
   const double term_E = lam1_m + 3.0 * lam2_m - 4.0 * lamh_m;
   const double term_F = 3.0 * lam1_m + lam2_m + 4.0 * lam5_m;
   const double term_G = 3.0 * lam1_m - 3.0 * lam2_m;
-  
+
+  /// Compute the terms on the upper half of the tensor
   integrated(0, 0) = 1.0 / 48.0 * (term_A + term_B * exp_neg2s + term_C 
       * exp_neg8s);
   integrated(0, 1) = -1.0 / 48.0 * (term_D + term_C * exp_neg8s);
@@ -57,20 +62,20 @@ Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h,
       * lamh_m;
   integrated(3, 3) = 1.0 / 8.0 * (term_F + (-3.0 * lam1_m - lam2_m + 4.0 
       * lam5_m) * exp_neg8s);
-  
+
+  /// Only compute the terms in the z direction if requested
   if (skip_z) {
     integrated(4, 4) = 1.0;
     integrated(5, 5) = 1.0;
   }
   else {
-    
     const double term_H = lam3_m + lam4_m;
     const double term_J = lam3_m - lam4_m;
-  
     integrated(4, 4) = 0.5 * (term_H - term_J * exp_neg2s);
     integrated(5, 5) = 0.5 * (term_H + term_J * exp_neg2s);
   }
-  
+
+  /// The tensor is symmetrical, so the lower half terms can just be copied
   integrated.triangularView<Eigen::Lower>() = integrated.transpose();
   
   return integrated;
@@ -78,6 +83,11 @@ Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h,
 }
 
 
+/**
+* Performs the integration of the stiffness tensor multiplied by a Gaussian
+* signal over the entire angle space, in the case when the m factor is very
+* close to 0.
+*/
 Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h, 
                                                  double lambda_1, 
                                                  double lambda_2, 
@@ -89,7 +99,8 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
                                                  bool skip_z = false) {
   
   Eigen::Matrix<double, 6, 6> integrated = Eigen::Matrix<double, 6, 6>::Zero();
-  
+
+  /// Pe-compute some terms to optimize speed and avoid redundancy
   const double lamh_l = log(lambda_h);
   const double lam1_l = log(lambda_1);
   const double lam2_l = log(lambda_2);
@@ -143,6 +154,7 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
   const double quad_term4 = 15.0 * lam1_sq - 6.0 * lam1_lam2 + 7.0 * lam2_sq 
       - 24.0 * lam1_lam5 - 8.0 * lam2_lam5 + 16.0 * lam5_sq;
 
+  /// Compute the terms on the upper half of the tensor
   integrated(0, 0) = 1.0 / 48.0 * (term_A * exp_8s + term_B * exp_6s + term_C) 
       * exp_neg8s;
   integrated(0, 1) = -1.0 / 48.0 * (term_D * exp_8s + term_C) * exp_neg8s;
@@ -154,19 +166,20 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
       * lamh_l;
   integrated(3, 3) = 1.0 / 8.0 * (term_F * exp_8s - 3.0 * lam1_l - lam2_l 
       + 4.0 * lam5_l) * exp_neg8s;
+
+  /// Only compute the terms in the z direction if requested
   if (skip_z) {
     integrated(4, 4) = 1.0;
     integrated(5, 5) = 1.0;
   }
   else {
-  
     const double term_H = lam3_l + lam4_l;
     const double term_J = lam3_l - lam4_l;
-  
     integrated(4, 4) = 0.5 * (term_H * exp_2s - term_J) * exp_neg2s;
     integrated(5, 5) = 0.5 * (term_H * exp_2s + term_J) * exp_neg2s;
   }
-  
+
+  /// The result is a sum of two terms, computing the second one here
   integrated(0, 0) += 1.0 / 256.0 * m * (quad_term1 * exp_16s +  4.0 
       * quad_term2 * exp_14s - 16.0 * cross_term * exp_12s + 6.0 * cross_term 
       * exp_8s - 4.0 * quad_term2 * exp_6s - quad_term3) * exp_neg16s;
@@ -188,33 +201,39 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
   integrated(2, 2) += 1.0 / 16.0 * cross_term_m * (exp_4s - 1.0) * exp_neg4s;
   integrated(3, 3) += 1.0 / 128.0 * m * (quad_term4 * exp_16s - 6.0 
       * cross_term * exp_8s - quad_term3) * exp_neg16s;
-  
+
+  /// Only compute the terms in the z direction if requested
   if (!skip_z) {
-  
     const double z_cross = lam3_l * lam3_l - 2.0 * lam3_l * lam4_l + lam4_l 
         * lam4_l;
     const double z_term = z_cross * m * (exp_4s - 1.0) * exp_neg4s;
-  
     integrated(4, 4) += 0.125 * z_term;
     integrated(5, 5) += 0.125 * z_term;
   }
 
+  /// The tensor is symmetrical, so the lower half terms can just be copied
   integrated.triangularView<Eigen::Lower>() = integrated.transpose();
   
   return integrated;
   
 }
 
+
+/**
+* Applies a rotation of R3 around the z axis at the given angle to a tensor.
+*/
 Eigen::Matrix<double, 6, 6> rotate(const Eigen::Matrix<double, 6, 6> tensor, 
                                    double angle) {
 
+  /// Build the rotation matrix in R3
   Eigen::Matrix<double, 3, 3> rot_mat;
   const double cos_ang = cos(angle);
   const double sin_ang = sin(angle);
   rot_mat << cos_ang, -sin_ang, 0.0,
              sin_ang,  cos_ang, 0.0,
              0.0,      0.0,     1.0;
-  
+
+  /// Build the rotation tensor from the rotation matrix
   Eigen::Matrix<double, 6, 6> rot_ten;
   
   rot_ten(0, 0) = rot_mat(0, 0) * rot_mat(0, 0);
@@ -267,12 +286,17 @@ Eigen::Matrix<double, 6, 6> rotate(const Eigen::Matrix<double, 6, 6> tensor,
       * rot_mat(2, 1);
   rot_ten(5, 5) = rot_mat(1, 1) * rot_mat(2, 2) + rot_mat(1, 2) 
       * rot_mat(2, 1);
-  
+
+  /// Finally, apply the rotation tensor
   return rot_ten.transpose() * tensor * rot_ten;
 
 }
 
 
+/**
+* Computes the final stress value from the stiffness tensor for each order, the
+* multiplicative factor for each order, and the strain tensor.
+*/
 Eigen::Matrix<double, 6, 1> final_stress(
     const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
     const Eigen::Matrix<double, 6, 1> strain,
@@ -280,14 +304,19 @@ Eigen::Matrix<double, 6, 1> final_stress(
     
   std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
   Eigen::Matrix<double, 6, 6> stiff_tot = Eigen::Matrix<double, 6, 6>::Zero();
-  
+
+  /// Iterate over all the orders
   for (int j = 0; j < 5; j++) {
+    /// Skip inactive orders
     if (vals[j] == 0.0) continue;
-    
+
+    /// For each order greater than 1, there is a multiplicative factor
+    /// dependent on the strain and stiffness
     if (j > 0) {
       factor[j] = strain.dot(stiffness[j] * strain);
     }
-    
+
+    // The total equivalent stiffness is the sum of the ones for each order
     stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j];
   }
   
@@ -296,6 +325,10 @@ Eigen::Matrix<double, 6, 1> final_stress(
 }
 
 
+/**
+* Determines the value of the zz strain so that the zz stress is close enough
+* to 0, to be in a plane stress configuration.
+*/
 float calc_ezz_plane_stress(
     const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
     Eigen::Matrix<double, 6, 1> strain,
@@ -305,54 +338,73 @@ float calc_ezz_plane_stress(
   
   std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
   Eigen::Matrix<double, 1, 6> stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
-  
+
+  /// Iterate over all the orders
   for (int j = 0; j < 5; j++) {
+    /// Skip inactive orders
     if (vals[j] == 0.0) continue;
+    /// For each order greater than 1, there is a multiplicative factor
+    /// dependent on the strain and stiffness
     if (j > 0) {
       factor[j] = strain.dot(stiffness[j] * strain);
     }
+    /// The total equivalent stiffness is the sum of the ones for each order
     stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
   }
 
+  /// Compute the zz strain component
   double szz = stiff_tot.dot(strain);
   double prev_szz = szz;
-  
+
+  /// Stop here if the stress is already close enough to 0
   if (abs(szz) < stop_crit) return strain(2, 0);
-  
+
+  /// Use a fixed-point method to compute the optimal strain value
   if (stiff_tot(2) != 0.0) {
     strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
                      stiff_tot(1) * strain(1, 0) + 
                      stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
   }
+  /// In case the stiffness associated with zz is zero, nothing can be done
   else {
     return stiff_tot(0) * strain(0, 0) + stiff_tot(1) * strain(1, 0) 
         + stiff_tot(3) * strain(3, 0);
   }
-  
+
+  /// Iterate until reaching a solution or until reaching max iterations
   int n = 0;
   while (n < max_iter) {
     ++n;
     
     factor = {1.0, 0.0, 0.0, 0.0, 0.0};
     stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
-    
+
+    /// Iterate over all the orders
     for (int j = 0; j < 5; j++) {
+      /// Skip inactive orders
       if (vals[j] == 0.0) continue;
+      /// For each order greater than 1, there is a multiplicative factor
+      /// dependent on the strain and stiffness
       if (j > 0) {
         factor[j] = strain.dot(stiffness[j] * strain);
       }
+      /// The total equivalent stiffness is the sum of the ones for each order
       stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
     }
-   
+
+    /// Compute the zz strain component
     szz = stiff_tot.dot(strain);
-    
+
+    /// Stop here if the stress is already close enough to 0
     if (abs(szz) < stop_crit) return strain(2, 0);
-    
+
+    /// Use a fixed-point method to compute the optimal strain value
     if (stiff_tot(2) != 0.0) {
       strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
                        stiff_tot(1) * strain(1, 0) + 
                        stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
     }
+    /// In case the stiffness associated with zz is zero, nothing can be done
     else {
       return stiff_tot(0) * strain(0, 0) + stiff_tot(1) * strain(1, 0) 
           + stiff_tot(3) * strain(3, 0);
@@ -365,6 +417,11 @@ float calc_ezz_plane_stress(
 }
 
 
+/**
+* Given material parameters, microstructure parameters, order multiplicators,
+* and a strain tensor, computes the stress tensor under the plane stress
+* hypothesis.
+*/
 int calc_stress(double exx,
                 double eyy,
                 double exy,
@@ -410,21 +467,22 @@ int calc_stress(double exx,
                 double* syy,
                 double* sxy) {
 
-  // Compute eigenvalues
+  /// Compute eigenvalues of the strain tensor
   const double trace = exx + eyy;
   const double det = exx * eyy - exy * exy;
   const double sqrt_term = sqrt((exx - eyy) * (exx - eyy) + 4.0 * exy * exy);
   const double lambda1 = (trace + sqrt_term) * 0.5;
   const double lambda2 = (trace - sqrt_term) * 0.5;
 
-  // Compute eigenvector angle (theta_load)
+  /// Compute the angle of the first eigenvector
   double theta_load;
   if (abs(exy) < 1e-12 && abs(exx - eyy) < 1e-12) {
       theta_load = 0.0;
   } else {
       theta_load = 0.5 * atan2(2.0 * exy, exx - eyy);
   }
-  
+
+  /// Organize the values in arrays for convenience
   const double sigstd[3] = {sigma_1, sigma_2, sigma_3};
   const double theta[3] = {theta_1, theta_2, theta_3};
   const std::array<double, 5> vals = {val1, val2, val3, val4, val5};
@@ -433,25 +491,35 @@ int calc_stress(double exx,
   const std::array<double, 5> lam3 = {lam31, lam32, lam33, lam34, lam35};
   const std::array<double, 5> lam4 = {lam41, lam42, lam43, lam44, lam45};
   const std::array<double, 5> lam5 = {lam51, lam52, lam53, lam54, lam55};
-  
+
+  /// Initialize the stiffness values with zeros
   std::array<Eigen::Matrix<double, 6, 6>, 5> stiffness;
   std::fill(stiffness.begin(), 
             stiffness.end(), 
             Eigen::Matrix<double, 6, 6>::Zero());
   Eigen::Matrix<double, 6, 6> homogenized;
 
+  /// Iterate over up to three tissue layers
   int layer_count = 0;
   for (int i = 0; i < 3; i++) {
 
+    /// A standard deviation too low indicates that a layer was not detected
     if (sigstd[i] < 0.01) break;
-    
+
+    /// Compute the integration factor as a function of the angle between the
+    /// load and the fibers
     double m = cos(2.0 * (theta_load - theta[i]));
+    /// Correct by the factor to account for anisotropy in the strain
     m *= (abs(lambda1 - lambda2)) / (abs(lambda1) + abs(lambda2));
-    
+
+    /// Iterate over the 5 orders of the model
     for (int j = 0; j < 5; j++) {
-    
+
+      /// Skip inactive orders
       if (vals[j] == 0.0) continue;
-    
+
+      /// Use the relevant function for computing the homogenized tensor,
+      /// depending on the value of m
       if (abs(m) < 0.01) {
         homogenized = zero_m_approximation(
           lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], sigstd[i], 
@@ -462,7 +530,8 @@ int calc_stress(double exx,
           lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], 
           sigstd[i], m, true).pow(1.0 / m);
       }
-      
+
+      /// Rotate the homogenized tensor to align it with the fibers
       if (i == 0) {
         stiffness[j] = rotate(homogenized, theta[i]);
       }
@@ -474,18 +543,21 @@ int calc_stress(double exx,
     
     ++layer_count;
   }
-  
+
+  /// The final stiffness tensor is averaged over the detected layers
   for (int j = 0; j < 5; j++) {
     stiffness[j] = stiffness[j] / layer_count;
   }
-  
+
+  /// Need to consider 3D to compute the stress in plane stress hypothesis
   Eigen::Matrix<double, 6, 1> strain_3d;
   strain_3d(0, 0) = exx;
   strain_3d(1, 0) = eyy;
   strain_3d(3, 0) = exy;
   strain_3d(4, 0) = 0.0;
   strain_3d(5, 0) = 0.0;
-  
+
+  /// Calculate the zz strain value that satisfies the plane stress hypothesis
   strain_3d(2, 0) = 0.0;
   strain_3d(2, 0) = calc_ezz_plane_stress(
       stiffness, 
@@ -493,7 +565,8 @@ int calc_stress(double exx,
       vals, 
       std::max(exx, std::max(eyy, exy)) / 1000.0,
       100);
-  
+
+  /// Finally, compute the final 3D stress tensor
   const Eigen::Matrix<double, 6, 1> sig_3d = density * final_stress(stiffness,
                                                                     strain_3d,
                                                                     vals);
