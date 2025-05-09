@@ -7,7 +7,7 @@ import re
 from tqdm.auto import tqdm
 import sys
 
-from optimize_diagonals import optimize_diagonals
+from .optimize_diagonals import optimize_diagonals
 
 if __name__ == "__main__":
 

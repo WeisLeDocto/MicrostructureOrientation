@@ -8,8 +8,8 @@ from pathlib import Path
 from tqdm.auto import tqdm
 import sys
 
-from compute_stress import compute_stress
-from image_correlation import image_correlation
+from .compute_stress import compute_stress
+from .image_correlation import image_correlation
 
 
 def error_diagonal(lib_path: Path,

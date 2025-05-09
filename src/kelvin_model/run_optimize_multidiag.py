@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import re
 
-from optimize_diagonals import optimize_diagonals
+from .optimize_diagonals import optimize_diagonals
 
 if __name__ == "__main__":
 
