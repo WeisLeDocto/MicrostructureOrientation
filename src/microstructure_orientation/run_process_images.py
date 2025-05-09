@@ -20,11 +20,15 @@ if __name__ == '__main__':
     # roi_x = slice(698, 1898, 1)
 
     # 7LX1_3
-    roi_y = slice(1529, 3042, 1)
-    roi_x = slice(1229, 2190, 1)
+    # roi_y = slice(1529, 3042, 1)
+    # roi_x = slice(1229, 2190, 1)
+
+    # 7LX1_4
+    roi_y = slice(1538, 3089, 1)
+    roi_x = slice(1041, 1834, 1)
 
     # Parameters driving the image processing
-    base_path = Path('/home/weis/Desktop/HDR/7LX1_3')
+    base_path = Path('/home/weis/Desktop/HDR/7LX1_4')
     n_images = 8
     nb_ang = 45
     nb_pix = 15
