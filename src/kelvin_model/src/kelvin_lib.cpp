@@ -296,7 +296,7 @@ Eigen::Matrix<double, 6, 1> final_stress(
 }
 
 
-float calc_ezz_plane_stress_2(
+float calc_ezz_plane_stress(
     const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
     Eigen::Matrix<double, 6, 1> strain,
     const std::array<double, 5> &vals,
@@ -357,85 +357,6 @@ float calc_ezz_plane_stress_2(
       return stiff_tot(0) * strain(0, 0) + stiff_tot(1) * strain(1, 0) 
           + stiff_tot(3) * strain(3, 0);
     }
-    
-  }
-  
-  return strain(2, 0);
-  
-}
-
-
-float calc_ezz_plane_stress(
-    const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
-    Eigen::Matrix<double, 6, 1> strain,
-    const std::array<double, 5> &vals,
-    const double stop_crit,
-    const int max_iter) {
-  
-  std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
-  std::array<double, 5> d_factor = {1.0, 0.0, 0.0, 0.0, 0.0};
-  Eigen::Matrix<double, 1, 6> stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
-  double sum_grad = 0.0;
-  
-  for (int j = 0; j < 5; j++) {
-    if (vals[j] == 0.0) continue;
-    
-    if (j > 0) {
-      factor[j] = strain.dot(stiffness[j] * strain);
-      d_factor[j] = 2.0 * stiffness[j].row(2).dot(strain);
-      sum_grad += vals[j] * j * (j + 1) * pow(factor[j], (j - 1)) * d_factor[j] 
-        * stiffness[j].row(2).dot(strain);
-    }
-    
-    stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
-  }
-
-  double szz = stiff_tot.dot(strain);
-  double grad = 2.0 * szz * (sum_grad + stiff_tot(2));
-  double prev_szz = szz;
-  
-  double weight = 0.01;
-  int n = 0;
-  
-  if (stiff_tot(2) != 0.0) {
-    strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
-                     stiff_tot(1) * strain(1, 0) + 
-                     stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
-  }
-  else {
-    strain(2, 0) = strain(2, 0) - weight * grad;
-  }
-  
-  while (n < max_iter) {
-    ++n;
-    
-    factor = {1.0, 0.0, 0.0, 0.0, 0.0};
-    d_factor = {1.0, 0.0, 0.0, 0.0, 0.0};
-    stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
-    sum_grad = 0.0;
-    
-    for (int j = 0; j < 5; j++) {
-      if (vals[j] == 0.0) continue;
-      
-      if (j > 0) {
-        factor[j] = strain.dot(stiffness[j] * strain);
-        d_factor[j] = 2.0 * stiffness[j].row(2).dot(strain);
-        sum_grad += vals[j] * j * (j + 1) * pow(factor[j], (j - 1)) 
-          * d_factor[j] * stiffness[j].row(2).dot(strain);
-      }
-      
-      stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
-    }
-   
-    szz = stiff_tot.dot(strain);
-    grad = 2.0 * szz * (sum_grad + stiff_tot(2));
-    
-    if (abs(szz) < stop_crit) return strain(2, 0);
-    
-    weight = (abs(szz) <= abs(prev_szz)) ? 1.2 * weight : 0.5 * weight;
-    prev_szz = szz;
-    
-    strain(2, 0) = strain(2, 0) - weight * grad;
     
   }
   
@@ -566,7 +487,7 @@ int calc_stress(double exx,
   strain_3d(5, 0) = 0.0;
   
   strain_3d(2, 0) = 0.0;
-  strain_3d(2, 0) = calc_ezz_plane_stress_2(
+  strain_3d(2, 0) = calc_ezz_plane_stress(
       stiffness, 
       strain_3d, 
       vals, 
