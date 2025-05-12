@@ -160,4 +160,4 @@ def compare_results_expe(lib_path: Path,
                             'measured_y': efforts_y,
                             'calculated_x': forces_x,
                             'calculated_y': forces_y})
-    results.to_csv(dest_file)
+    results.to_csv(dest_file, index=False)
