@@ -327,7 +327,8 @@ def compute_stress(lib_path: Path,
               position=2,
               leave=False) as pbar:
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            for i, sxx, syy, sxy in executor.map(_wrapper, args, chunksize=300):
+            for i, sxx, syy, sxy in executor.map(_wrapper, args,
+                                                 chunksize=2000):
                 stress[np.unravel_index(i, exx.shape)] = (sxx, syy, sxy)
                 pbar.update()
 
