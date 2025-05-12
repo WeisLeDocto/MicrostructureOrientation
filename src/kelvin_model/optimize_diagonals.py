@@ -2,6 +2,7 @@
 
 from collections.abc import Sequence
 import numpy as np
+import pandas as pd
 from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import least_squares, Bounds
 from pathlib import Path
@@ -864,6 +865,33 @@ def optimize_diagonals(lib_path: Path,
                                 'efforts_x': efforts_x,
                                 'efforts_y': efforts_y})
 
-    # Save the results to a file
-    with open(dest_file, "a") as file:
-        file.write(f"{', '.join(map(str, fit.x.tolist()))}\n")
+    # The labels of all the value to save for making the model
+    labels = ("val1", "val2", "val3", "val4", "val5", "density_min",
+              "lambda_h", "lambda_11", "lambda_21", "lambda_51", "lambda_12",
+              "lambda_22", "lambda_52", "lambda_13", "lambda_23", "lambda_53",
+              "lambda_14", "lambda_24", "lambda_54", "lambda_15", "lambda_25",
+              "lambda_55")
+
+    # Load previous results if they already exist at the indicated location
+    if dest_file.exists() and dest_file.is_file():
+        results = pd.read_csv(dest_file)
+    else:
+        results = pd.DataFrame(columns=labels)
+
+    # Store the various order coefficients
+    new_vals = pd.Series()
+    for label, val in zip(labels[:5], order_coeffs.tolist(), strict=True):
+        new_vals[label] = val
+
+    # Store all the other values for the material coefficients
+    extra = iter(extra_vals.tolist())
+    fitted = iter(fit.x.tolist())
+    for label, flag in zip(labels[5:], to_fit.tolist(), strict=True):
+        if flag:
+            new_vals[label] = next(fitted)
+        else:
+            new_vals[label] = next(extra)
+
+    # Fuse the new results with the existing ones and save to a csv file
+    results = pd.concat((results, new_vals.to_frame().transpose()))
+    results.to_csv(dest_file)
