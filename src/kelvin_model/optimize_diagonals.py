@@ -10,7 +10,8 @@ from tqdm.auto import tqdm
 import sys
 
 from .compute_stress import compute_stress
-from .image_correlation import image_correlation
+from .kelvin_utils import (prepare_data, diagonals_interpolator, calc_density,
+                           stress_diag_to_force)
 
 
 def error_all_image(lib_path: Path,
@@ -159,16 +160,26 @@ def error_all_image(lib_path: Path,
     syy_diags = syy_int(interp_pts)
     sxy_diags = sxy_int(interp_pts)
 
-    # Integrate the stress over the diagonals to get the x and y efforts
-    stress = np.stack((np.stack((sxx_diags, sxy_diags), axis=2),
-                       np.stack((sxy_diags, syy_diags), axis=2)), axis=3)
-    proj = (stress @ normals).squeeze() * scale * thickness / cosines
-    sum_diags = np.sum(proj, axis=1)
+    # Normalize by the number of diagonals because the more diagonals the
+    # greater the error
+    downscale_factor_w = interp_pts.shape[0]
+    # Normalize by the effort to get a relative error
+    effort_norm = np.sqrt(effort_x ** 2 + effort_y ** 2)
+
+    comp_force_x, comp_force_y = stress_diag_to_force(sxx_diags,
+                                                      syy_diags,
+                                                      sxy_diags,
+                                                      density.shape[0],
+                                                      interp_pts.shape[1],
+                                                      normals,
+                                                      cosines,
+                                                      scale,
+                                                      thickness)
 
     # Return the error as the difference between the computed and expect effort
-    return np.sum(np.sqrt(np.power(sum_diags[:, 0] - effort_x, 2) +
-                          np.power(sum_diags[:, 1] - effort_y, 2)),
-                  axis=None) / interp_pts.shape[0]
+    return np.sum(np.sqrt(np.power(comp_force_x - effort_x, 2) +
+                          np.power(comp_force_y - effort_y, 2)),
+                  axis=None) / downscale_factor_w / effort_norm
 
 
 def error_diags_only(lib_path: Path,
@@ -271,54 +282,19 @@ def error_diags_only(lib_path: Path,
         various factors.
     """
 
-    # Build interpolators for the strain fields and compute the strains on the
-    # provided diagonals
-    exx_int = RegularGridInterpolator((np.arange(exx.shape[0]),
-                                       np.arange(exx.shape[1])), exx)
-    eyy_int = RegularGridInterpolator((np.arange(eyy.shape[0]),
-                                       np.arange(eyy.shape[1])), eyy)
-    exy_int = RegularGridInterpolator((np.arange(exy.shape[0]),
-                                       np.arange(exy.shape[1])), exy)
-    exx_diags = exx_int(interp_pts)
-    eyy_diags = eyy_int(interp_pts)
-    exy_diags = exy_int(interp_pts)
-
-    # Build interpolators for the angle fields and compute the angles on the
-    # provided diagonals
-    theta_1_int = RegularGridInterpolator((np.arange(theta_1.shape[0]),
-                                           np.arange(theta_1.shape[1])),
-                                          theta_1)
-    theta_2_int = RegularGridInterpolator((np.arange(theta_2.shape[0]),
-                                           np.arange(theta_2.shape[1])),
-                                          theta_2)
-    theta_3_int = RegularGridInterpolator((np.arange(theta_3.shape[0]),
-                                           np.arange(theta_3.shape[1])),
-                                          theta_3)
-    theta_1_diags = theta_1_int(interp_pts)
-    theta_2_diags = theta_2_int(interp_pts)
-    theta_3_diags = theta_3_int(interp_pts)
-
-    # Build interpolators for the standard deviation fields and compute the
-    # standard deviations on the provided diagonals
-    sigma_1_int = RegularGridInterpolator((np.arange(sigma_1.shape[0]),
-                                           np.arange(sigma_1.shape[1])),
-                                          sigma_1)
-    sigma_2_int = RegularGridInterpolator((np.arange(sigma_2.shape[0]),
-                                           np.arange(sigma_2.shape[1])),
-                                          sigma_2)
-    sigma_3_int = RegularGridInterpolator((np.arange(sigma_3.shape[0]),
-                                           np.arange(sigma_3.shape[1])),
-                                          sigma_3)
-    sigma_1_diags = sigma_1_int(interp_pts)
-    sigma_2_diags = sigma_2_int(interp_pts)
-    sigma_3_diags = sigma_3_int(interp_pts)
-
-    # Build interpolators for the density field and compute the density on the
-    # provided diagonals
-    density_int = RegularGridInterpolator((np.arange(density.shape[0]),
-                                           np.arange(density.shape[1])),
-                                          density)
-    density_diags = density_int(interp_pts)
+    (exx_diags, eyy_diags, exy_diags, theta_1_diags, theta_2_diags,
+     theta_3_diags, sigma_1_diags, sigma_2_diags, sigma_3_diags,
+     density_diags) = diagonals_interpolator(exx,
+                                             eyy,
+                                             exy,
+                                             interp_pts,
+                                             theta_1,
+                                             theta_2,
+                                             theta_3,
+                                             sigma_1,
+                                             sigma_2,
+                                             sigma_3,
+                                             density)
 
     # Compute the stress only on the diagonals
     sxx, syy, sxy = compute_stress(lib_path,
@@ -354,25 +330,25 @@ def error_diags_only(lib_path: Path,
                                    sigma_3_diags,
                                    density_diags)
 
-    # Normalize by the number of points in a digonal otherwise with fewer
-    # points one cannot reach the target force with the same properties
-    downscale_factor_h = interp_pts.shape[1] / density.shape[0]
     # Normalize by the number of diagonals because the more diagonals the
     # greater the error
     downscale_factor_w = interp_pts.shape[0]
     # Normalize by the effort to get a relative error
     effort_norm = np.sqrt(effort_x ** 2 + effort_y ** 2)
 
-    # Integrate the stress over the diagonals to get the x and y efforts
-    stress = np.stack((np.stack((sxx, sxy), axis=2),
-                       np.stack((sxy, syy), axis=2)), axis=3)
-    proj = (stress @ normals).squeeze() * scale * thickness / cosines
-    sum_diags = np.sum(proj, axis=1)
-    sum_diags /= downscale_factor_h
+    comp_force_x, comp_force_y = stress_diag_to_force(sxx,
+                                                      syy,
+                                                      sxy,
+                                                      density.shape[0],
+                                                      interp_pts.shape[1],
+                                                      normals,
+                                                      cosines,
+                                                      scale,
+                                                      thickness)
 
     # Return the error as the difference between the computed and expect effort
-    return np.sum(np.sqrt(np.power(sum_diags[:, 0] - effort_x, 2) +
-                          np.power(sum_diags[:, 1] - effort_y, 2)),
+    return np.sum(np.sqrt(np.power(comp_force_x - effort_x, 2) +
+                          np.power(comp_force_y - effort_y, 2)),
                   axis=None) / downscale_factor_w / effort_norm
 
 
@@ -674,8 +650,7 @@ def _wrapper(x: np.ndarray,
               lambda_15, lambda_25, lambda_55)
 
     # Compute the density from the base image and the minimum density value
-    d_max, d_min = density_base.max(), density_base.min()
-    density = 1 - (1 - dens_min) * (density_base - d_min) / (d_max - d_min)
+    density = calc_density(density_base, dens_min)
 
     return error_diagonals(lib_path,
                            interp_strain,
@@ -776,43 +751,16 @@ def optimize_diagonals(lib_path: Path,
             optimization.
     """
 
-    # First, compute the strain using digital image correlation
-    exxs, eyys, exys = zip(*(image_correlation(ref_img, def_img)
-                             for def_img in def_images))
-
-    # Read the angle and standard deviation values from the input data
-    sigma_1 = gauss_fit[:, :, 0]
-    sigma_2 = np.nan_to_num(gauss_fit[:, :, 2])
-    sigma_3 = np.nan_to_num(gauss_fit[:, :, 4])
-    theta_1 = peaks[:, :, 0]
-    theta_2 = np.nan_to_num(peaks[:, :, 1])
-    theta_3 = np.nan_to_num(peaks[:, :, 2])
-
-    # Generate the interpolation points on the diagonals
-    interp_pts = np.empty((ref_img.shape[1], nb_interp_diag, 2),
-                          dtype=np.float64)
-    for j in range(interp_pts.shape[0]):
-        interp_pts[j, :, 1] = np.linspace(j, ref_img.shape[1] - 1 - j,
-                                          nb_interp_diag)
-        interp_pts[j, :, 0] = np.linspace(0, ref_img.shape[0] - 1,
-                                          nb_interp_diag)
-    interp_pts = interp_pts[::diagonal_downscaling]
-
-    # Generate the normals to the diagonals on each interpolation point
-    normals = np.zeros((ref_img.shape[1], nb_interp_diag, 2), dtype=np.float64)
-    for i in range(normals.shape[0]):
-        normals[i] = np.array((1.0, (ref_img.shape[1] - 2 * i - 1) /
-                               ref_img.shape[0]),
-                              dtype=np.float64)
-        normals[i] /= np.linalg.norm(normals[i], axis=1)[:, np.newaxis]
-    normals = normals[::diagonal_downscaling]
-
-    # The correction factor for the inclination of the diagonals
-    cosines = normals @ np.array((1.0, 0.0), dtype=np.float64)
-
-    # Necessary for matrix multiplication later on
-    normals = normals[..., np.newaxis]
-    cosines = cosines[..., np.newaxis]
+    # Perform a first processing on the input data
+    (exxs, eyys, exys,
+     sigma_1, sigma_2, sigma_3,
+     theta_1, theta_2, theta_3,
+     interp_pts, normals, cosines) = prepare_data(ref_img,
+                                                  gauss_fit,
+                                                  peaks,
+                                                  def_images,
+                                                  nb_interp_diag,
+                                                  diagonal_downscaling)
 
     # Define the bounds for all the parameters
     nb_max = 17
