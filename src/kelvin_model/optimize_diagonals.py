@@ -822,7 +822,7 @@ def optimize_diagonals(lib_path: Path,
 
     # Load previous results if they already exist at the indicated location
     if dest_file.exists() and dest_file.is_file():
-        results = pd.read_csv(dest_file)
+        results = pd.read_csv(dest_file, index_col=0)
     else:
         results = pd.DataFrame(columns=labels)
 
@@ -841,6 +841,5 @@ def optimize_diagonals(lib_path: Path,
             new_vals[label] = next(extra)
 
     # Fuse the new results with the existing ones and save to a csv file
-    results = pd.concat((results, new_vals.to_frame().transpose()),
-                        ignore_index=True)
-    results.to_csv(dest_file, index=False, columns=labels)
+    results = pd.concat((results, new_vals.to_frame().transpose()))
+    results.to_csv(dest_file, columns=labels)
