@@ -156,8 +156,14 @@ def compare_results_expe(lib_path: Path,
 
     # Write all the force data into a single file
     results = pd.DataFrame({'time': timestamps,
+                            'xx_strain': tuple(np.average(exx)
+                                               for exx in exxs),
+                            'yy_strain': tuple(np.average(eyy)
+                                               for eyy in eyys),
+                            'xy_strain': tuple(np.average(exy)
+                                               for exy in exys),
                             'measured_x': efforts_x,
-                            'measured_y': efforts_y,
                             'calculated_x': forces_x,
+                            'measured_y': efforts_y,
                             'calculated_y': forces_y})
     results.to_csv(dest_file, index=False)
