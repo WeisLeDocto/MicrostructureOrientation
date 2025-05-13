@@ -32,20 +32,6 @@ if __name__ == '__main__':
     peaks_path = Path("/home/weis/Desktop/HDR/7LX1_2/peaks/4_2414.npz")
     peaks = np.radians(np.load(peaks_path)['arr_0'])
 
-    # Initial guess for the optimization
-    x0 = np.concatenate((np.array((0.00043865203019722535,
-                                   27.520274700417893),
-                                  dtype=np.float64),
-                         np.array((0.2495873752929645,
-                                   1.3366019501003517,
-                                   1.9457401277770343),
-                                  dtype=np.float64),
-                         np.tile(np.array((0.8783740443867915,
-                                           0.14472992624487574,
-                                           1.010716786369869),
-                                          dtype=np.float64),
-                                 4)), axis=0)
-
     # Images to use for the optimization
     def_images_paths = (Path("/home/weis/Desktop/HDR/7LX1_2/hdr/5_2592.npy"),
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/6_2770.npy"),
@@ -75,18 +61,13 @@ if __name__ == '__main__':
         for idx in indexes)
     efforts_y = tuple(0.0 for _ in efforts_x)
 
-    # The multiplicative factors to apply to each order of the model
-    order_coeffs = np.array((1.0, 0.0, 1.0, 0.0, 0.0))
-
     # Parameters measured during the test
     scale = 0.01
     thickness = 0.54
 
     # Other parameters driving the optimization process
     nb_interp_diag = ref_img.shape[0]
-    interp_strain = True
     diagonal_downscaling = 20
-    verbose = False
     results_file = Path("/home/weis/Desktop/HDR/results.csv")
     dest_file = Path("/home/weis/Desktop/HDR/results_comp.csv")
 
