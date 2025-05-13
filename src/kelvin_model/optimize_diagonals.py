@@ -843,4 +843,4 @@ def optimize_diagonals(lib_path: Path,
     # Fuse the new results with the existing ones and save to a csv file
     results = pd.concat((results, new_vals.to_frame().transpose()),
                         ignore_index=True)
-    results.to_csv(dest_file, index=False)
+    results.to_csv(dest_file, index=False, columns=labels)
