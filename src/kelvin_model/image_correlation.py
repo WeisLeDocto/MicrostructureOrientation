@@ -2,6 +2,7 @@
 
 import numpy as np
 import cv2
+from scipy.ndimage import gaussian_filter
 
 
 def image_correlation(ref_img: np.ndarray,
@@ -39,6 +40,9 @@ def image_correlation(ref_img: np.ndarray,
     # Compute the optical flow between the two provided images
     flow = dis.calc(np.ascontiguousarray(ref_img_cont),
                     np.ascontiguousarray(def_img_cont), None)
+
+    # Apply a Gaussian filter to remove noise
+    flow = gaussian_filter(flow, 1, order=0)
 
     # Get the gradient from the optical flow
     du_dx = np.gradient(flow[:, :, 0], axis=1)
