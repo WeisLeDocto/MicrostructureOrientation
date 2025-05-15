@@ -32,7 +32,7 @@ def image_correlation(ref_img: np.ndarray,
     dis.setVariationalRefinementGamma(0.0)
     dis.setFinestScale(0)
     dis.setVariationalRefinementIterations(100)
-    dis.setGradientDescentIterations(25)
+    dis.setGradientDescentIterations(50)
     dis.setPatchSize(8)
     dis.setPatchStride(1)
     dis.setUseMeanNormalization(True)
