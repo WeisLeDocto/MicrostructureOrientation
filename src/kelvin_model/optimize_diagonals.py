@@ -765,6 +765,7 @@ def optimize_diagonals(lib_path: Path,
     x0 = x0[to_fit]
     bounds = Bounds(lb=low_bounds, ub=high_bounds)
     x_scale = np.ones(nb_max, dtype=np.float64)
+    x_scale[5:] = 10.0
     x_scale = x_scale[to_fit]
 
     # Perform the optimization
