@@ -160,12 +160,6 @@ def error_all_image(lib_path: Path,
     syy_diags = syy_int(interp_pts)
     sxy_diags = sxy_int(interp_pts)
 
-    # Normalize by the number of diagonals because the more diagonals the
-    # greater the error
-    downscale_factor_w = interp_pts.shape[0]
-    # Normalize by the effort to get a relative error
-    effort_norm = np.sqrt(effort_x ** 2 + effort_y ** 2)
-
     comp_force_x, comp_force_y = stress_diag_to_force(sxx_diags,
                                                       syy_diags,
                                                       sxy_diags,
@@ -177,9 +171,7 @@ def error_all_image(lib_path: Path,
                                                       thickness)
 
     # Return the error as the difference between the computed and expect effort
-    return np.sum(np.sqrt(np.power(comp_force_x - effort_x, 2) +
-                          np.power(comp_force_y - effort_y, 2)),
-                  axis=None) / downscale_factor_w / effort_norm
+    return abs(float(np.median(comp_force_x)) - effort_x)
 
 
 def error_diags_only(lib_path: Path,
@@ -330,12 +322,6 @@ def error_diags_only(lib_path: Path,
                                    sigma_3_diags,
                                    density_diags)
 
-    # Normalize by the number of diagonals because the more diagonals the
-    # greater the error
-    downscale_factor_w = interp_pts.shape[0]
-    # Normalize by the effort to get a relative error
-    effort_norm = np.sqrt(effort_x ** 2 + effort_y ** 2)
-
     comp_force_x, comp_force_y = stress_diag_to_force(sxx,
                                                       syy,
                                                       sxy,
@@ -347,9 +333,7 @@ def error_diags_only(lib_path: Path,
                                                       thickness)
 
     # Return the error as the difference between the computed and expect effort
-    return np.sum(np.sqrt(np.power(comp_force_x - effort_x, 2) +
-                          np.power(comp_force_y - effort_y, 2)),
-                  axis=None) / downscale_factor_w / effort_norm
+    return abs(float(np.median(comp_force_x)) - effort_x)
 
 
 def error_diagonals(lib_path: Path,
