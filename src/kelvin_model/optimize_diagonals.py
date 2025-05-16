@@ -272,7 +272,20 @@ def error_diags_only(lib_path: Path,
         The error in the computed force along the diagonals, normalized by
         various factors.
     """
-
+    
+    # Ensure there is no nan value in the data
+    exx = np.nan_to_num(exx)
+    eyy = np.nan_to_num(eyy)
+    exy = np.nan_to_num(exy)
+    theta_1 = np.nan_to_num(theta_1)
+    theta_2 = np.nan_to_num(theta_2)
+    theta_3 = np.nan_to_num(theta_3)
+    sigma_1 = np.nan_to_num(sigma_1)
+    sigma_2 = np.nan_to_num(sigma_2)
+    sigma_3 = np.nan_to_num(sigma_3)
+    density = np.nan_to_num(density)
+    
+    # Interpolate the fields on the diagonals
     (exx_diags, eyy_diags, exy_diags, theta_1_diags, theta_2_diags,
      theta_3_diags, sigma_1_diags, sigma_2_diags, sigma_3_diags,
      density_diags) = diagonals_interpolator(exx,
