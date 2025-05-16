@@ -3,216 +3,58 @@
 from collections.abc import Sequence
 import numpy as np
 import pandas as pd
-from scipy.interpolate import RegularGridInterpolator
 from scipy.optimize import least_squares, Bounds
 from pathlib import Path
 from tqdm.auto import tqdm
 import sys
+import concurrent.futures
+import itertools
+from multiprocessing.synchronize import RLock as RLockType
+from multiprocessing import RLock
 
 from .compute_stress import compute_stress
 from .kelvin_utils import (prepare_data, diagonals_interpolator, calc_density,
                            stress_diag_to_force)
 
 
-def error_all_image(lib_path: Path,
-                    exx: np.ndarray,
-                    eyy: np.ndarray,
-                    exy: np.ndarray,
-                    lambda_h: float,
-                    lambda_11: float,
-                    lambda_21: float,
-                    lambda_51: float,
-                    lambda_12: float,
-                    lambda_22: float,
-                    lambda_52: float,
-                    lambda_13: float,
-                    lambda_23: float,
-                    lambda_53: float,
-                    lambda_14: float,
-                    lambda_24: float,
-                    lambda_54: float,
-                    lambda_15: float,
-                    lambda_25: float,
-                    lambda_55: float,
-                    val1: float,
-                    val2: float,
-                    val3: float,
-                    val4: float,
-                    val5: float,
-                    theta_1: np.ndarray,
-                    theta_2: np.ndarray,
-                    theta_3: np.ndarray,
-                    sigma_1: np.ndarray,
-                    sigma_2: np.ndarray,
-                    sigma_3: np.ndarray,
-                    density: np.ndarray,
-                    interp_pts: np.ndarray,
-                    normals: np.ndarray,
-                    cosines: np.ndarray,
-                    scale: float,
-                    thickness: float,
-                    effort_x: float,
-                    effort_y: float) -> float:
-    """Computes the stress on the entire image at once, then extracts it on the
-    diagonals of interest, and returns the error in the computed x and y force.
-
-    Args:
-        lib_path: Path to the .so file containing the shared library for
-          computing the stress.
-        exx: Numpy array containing for all pixels the xx strain.
-        eyy: Numpy array containing for all pixels the yy strain.
-        exy: Numpy array containing for all pixels the xy strain.
-        lambda_h: Value of the hydrostatic eigenvalue, common to all orders.
-        lambda_11: Value of the first deviatoric eigenvalue for order 1.
-        lambda_21: Value of the second deviatoric eigenvalue for order 1.
-        lambda_51: Value of the fifth deviatoric eigenvalue for order 1.
-        lambda_12: Value of the first deviatoric eigenvalue for order 2.
-        lambda_22: Value of the second deviatoric eigenvalue for order 2.
-        lambda_52: Value of the fifth deviatoric eigenvalue for order 2.
-        lambda_13: Value of the first deviatoric eigenvalue for order 3.
-        lambda_23: Value of the second deviatoric eigenvalue for order 3.
-        lambda_53: Value of the fifth deviatoric eigenvalue for order 3.
-        lambda_14: Value of the first deviatoric eigenvalue for order 4.
-        lambda_24: Value of the second deviatoric eigenvalue for order 4.
-        lambda_54: Value of the fifth deviatoric eigenvalue for order 4.
-        lambda_15: Value of the first deviatoric eigenvalue for order 5.
-        lambda_25: Value of the second deviatoric eigenvalue for order 5.
-        lambda_55: Value of the fifth deviatoric eigenvalue for order 5.
-        val1: Multiplicative factor for the first-order term.
-        val2: Multiplicative factor for the second-order term.
-        val3: Multiplicative factor for the third-order term.
-        val4: Multiplicative factor for the fourth-order term.
-        val5: Multiplicative factor for the fifth-order term.
-        theta_1: Numpy array containing for all pixels the local angle of the
-            first tissue layer.
-        theta_2: Numpy array containing for all pixels the local angle of the
-            second tissue layer.
-        theta_3: Numpy array containing for all pixels the local angle of the
-            third tissue layer.
-        sigma_1: Numpy array containing for all pixels the local standard
-            deviation of the first tissue layer.
-        sigma_2: Numpy array containing for all pixels the local standard
-            deviation of the second tissue layer.
-        sigma_3: Numpy array containing for all pixels the local standard
-            deviation of the third tissue layer.
-        density: Numpy array containing for all pixels the local density of the
-            tissue.
-        interp_pts: A numpy array containing all the points over which to
-            compute the stress for calculating the final error.
-        normals: A numpy array containing for each interpolation point the
-            normalized coordinates of its normal along the interpolation line.
-        cosines: A numpy array containing for each interpolation point the
-            scaling factor to use for correcting the inclination of the
-            interpolation line.
-        scale: The mm/pixel ratio of the image, as a float.
-        thickness: The thickness of the sample in mm, as a float.
-        effort_x: The measured effort in x during the test.
-        effort_y: The measured effort in y during the test.
-
-    Returns:
-        The error in the computed force along the diagonals, normalized by
-        various factors.
-    """
-
-    # Compute the stress on the entire image at once
-    sxx, syy, sxy = compute_stress(lib_path,
-                                   exx,
-                                   eyy,
-                                   exy,
-                                   lambda_h,
-                                   lambda_11,
-                                   lambda_21,
-                                   lambda_51,
-                                   lambda_12,
-                                   lambda_22,
-                                   lambda_52,
-                                   lambda_13,
-                                   lambda_23,
-                                   lambda_53,
-                                   lambda_14,
-                                   lambda_24,
-                                   lambda_54,
-                                   lambda_15,
-                                   lambda_25,
-                                   lambda_55,
-                                   val1,
-                                   val2,
-                                   val3,
-                                   val4,
-                                   val5,
-                                   theta_1,
-                                   theta_2,
-                                   theta_3,
-                                   sigma_1,
-                                   sigma_2,
-                                   sigma_3,
-                                   density)
-
-    # Build interpolators for the stress fields and compute the stress on the
-    # provided diagonals
-    sxx_int = RegularGridInterpolator((np.arange(sxx.shape[0]),
-                                       np.arange(sxx.shape[1])), sxx)
-    syy_int = RegularGridInterpolator((np.arange(syy.shape[0]),
-                                       np.arange(syy.shape[1])), syy)
-    sxy_int = RegularGridInterpolator((np.arange(sxy.shape[0]),
-                                       np.arange(sxy.shape[1])), sxy)
-    sxx_diags = sxx_int(interp_pts)
-    syy_diags = syy_int(interp_pts)
-    sxy_diags = sxy_int(interp_pts)
-
-    comp_force_x, comp_force_y = stress_diag_to_force(sxx_diags,
-                                                      syy_diags,
-                                                      sxy_diags,
-                                                      density.shape[0],
-                                                      interp_pts.shape[1],
-                                                      normals,
-                                                      cosines,
-                                                      scale,
-                                                      thickness)
-
-    # Return the error as the difference between the computed and expect effort
-    return abs(float(np.median(comp_force_x)) - effort_x)
-
-
-def error_diags_only(lib_path: Path,
-                     exx: np.ndarray,
-                     eyy: np.ndarray,
-                     exy: np.ndarray,
-                     lambda_h: float,
-                     lambda_11: float,
-                     lambda_21: float,
-                     lambda_51: float,
-                     lambda_12: float,
-                     lambda_22: float,
-                     lambda_52: float,
-                     lambda_13: float,
-                     lambda_23: float,
-                     lambda_53: float,
-                     lambda_14: float,
-                     lambda_24: float,
-                     lambda_54: float,
-                     lambda_15: float,
-                     lambda_25: float,
-                     lambda_55: float,
-                     val1: float,
-                     val2: float,
-                     val3: float,
-                     val4: float,
-                     val5: float,
-                     theta_1: np.ndarray,
-                     theta_2: np.ndarray,
-                     theta_3: np.ndarray,
-                     sigma_1: np.ndarray,
-                     sigma_2: np.ndarray,
-                     sigma_3: np.ndarray,
-                     density: np.ndarray,
-                     interp_pts: np.ndarray,
-                     normals: np.ndarray,
-                     cosines: np.ndarray,
-                     scale: float,
-                     thickness: float,
-                     effort_x: float,
-                     effort_y: float) -> float:
+def error_diags_one_image(lib_path: Path,
+                          exx: np.ndarray,
+                          eyy: np.ndarray,
+                          exy: np.ndarray,
+                          lambda_h: float,
+                          lambda_11: float,
+                          lambda_21: float,
+                          lambda_51: float,
+                          lambda_12: float,
+                          lambda_22: float,
+                          lambda_52: float,
+                          lambda_13: float,
+                          lambda_23: float,
+                          lambda_53: float,
+                          lambda_14: float,
+                          lambda_24: float,
+                          lambda_54: float,
+                          lambda_15: float,
+                          lambda_25: float,
+                          lambda_55: float,
+                          val1: float,
+                          val2: float,
+                          val3: float,
+                          val4: float,
+                          val5: float,
+                          theta_1: np.ndarray,
+                          theta_2: np.ndarray,
+                          theta_3: np.ndarray,
+                          sigma_1: np.ndarray,
+                          sigma_2: np.ndarray,
+                          sigma_3: np.ndarray,
+                          density: np.ndarray,
+                          interp_pts: np.ndarray,
+                          normals: np.ndarray,
+                          cosines: np.ndarray,
+                          scale: float,
+                          thickness: float,
+                          effort_x: float) -> float:
     """Computes the stress only on the provided diagonals, and returns the
     error in the computed x and y force.
 
@@ -349,6 +191,28 @@ def error_diags_only(lib_path: Path,
     return abs(float(np.median(comp_force_x)) - effort_x)
 
 
+def _process_pool_wrapper(args: tuple[Path, np.ndarray, np.ndarray, np.ndarray, 
+                                      float, float, float, float, float, float, 
+                                      float, float, float, float, float, float, 
+                                      float, float, float, float, float, float, 
+                                      float, float, float, np.ndarray, 
+                                      np.ndarray, np.ndarray, np.ndarray, 
+                                      np.ndarray, np.ndarray, np.ndarray, 
+                                      np.ndarray, np.ndarray, np.ndarray, 
+                                      float, float, float]) -> float:
+    """Wrapper for passing the arguments separately to the worker, for better
+    clarity.
+
+    Args:
+        args: The arguments to pass to the worker, as a single tuple.
+
+    Returns:
+        The computed error as a float.
+    """
+
+    return error_diags_one_image(*args)
+
+
 def error_diagonals(lib_path: Path,
                     verbose: bool,
                     exxs: Sequence[np.ndarray],
@@ -455,98 +319,134 @@ def error_diagonals(lib_path: Path,
         The total error as a float, for all the images together.
     """
 
-    # Select the appropriate error function
-    err_func = error_diags_only if interp_strain else error_all_image
-
-    # Compute the error for all the provided images, and store one global
-    # error value
-    error = 0.0
-    for (exx, eyy, exy,
-         effort_x, effort_y) in tqdm(zip(exxs,
-                                         eyys,
-                                         exys,
-                                         efforts_x,
-                                         efforts_y),
-                                     total=len(exxs),
-                                     desc='Compute the stress for all images',
-                                     file=sys.stdout,
-                                     colour='green',
-                                     position=1,
-                                     leave=False):
-        error += err_func(lib_path,
-                          exx,
-                          eyy,
-                          exy,
-                          lambda_h,
-                          lambda_11,
-                          lambda_21,
-                          lambda_51,
-                          lambda_12,
-                          lambda_22,
-                          lambda_52,
-                          lambda_13,
-                          lambda_23,
-                          lambda_53,
-                          lambda_14,
-                          lambda_24,
-                          lambda_54,
-                          lambda_15,
-                          lambda_25,
-                          lambda_55,
-                          val1,
-                          val2,
-                          val3,
-                          val4,
-                          val5,
-                          theta_1,
-                          theta_2,
-                          theta_3,
-                          sigma_1,
-                          sigma_2,
-                          sigma_3,
-                          density,
-                          interp_pts,
-                          normals,
-                          cosines,
-                          scale,
-                          thickness,
-                          effort_x,
-                          effort_y)
-
+    nb_tot = len(exxs)
+    if nb_tot == 1:
+        return error_diags_one_image(lib_path,
+                                     exxs[0],
+                                     eyys[0],
+                                     exys[0],
+                                     lambda_h,
+                                     lambda_11,
+                                     lambda_21,
+                                     lambda_51,
+                                     lambda_12,
+                                     lambda_22,
+                                     lambda_52,
+                                     lambda_13,
+                                     lambda_23,
+                                     lambda_53,
+                                     lambda_14,
+                                     lambda_24,
+                                     lambda_54,
+                                     lambda_15,
+                                     lambda_25,
+                                     lambda_55,
+                                     val1,
+                                     val2,
+                                     val3,
+                                     val4,
+                                     val5,
+                                     theta_1,
+                                     theta_2,
+                                     theta_3,
+                                     sigma_1,
+                                     sigma_2,
+                                     sigma_3,
+                                     density,
+                                     interp_pts,
+                                     normals,
+                                     cosines,
+                                     scale,
+                                     thickness,
+                                     efforts_x[0])
+    
+    # Arrange the arguments to pass the to the ProcessPoolExecutor
+    args = zip(itertools.repeat(lib_path, nb_tot),
+               exxs,
+               eyys,
+               exys,
+               itertools.repeat(lambda_h, nb_tot),
+               itertools.repeat(lambda_11, nb_tot),
+               itertools.repeat(lambda_21, nb_tot),
+               itertools.repeat(lambda_51, nb_tot),
+               itertools.repeat(lambda_12, nb_tot),
+               itertools.repeat(lambda_22, nb_tot),
+               itertools.repeat(lambda_52, nb_tot),
+               itertools.repeat(lambda_13, nb_tot),
+               itertools.repeat(lambda_23, nb_tot),
+               itertools.repeat(lambda_53, nb_tot),
+               itertools.repeat(lambda_14, nb_tot),
+               itertools.repeat(lambda_24, nb_tot),
+               itertools.repeat(lambda_54, nb_tot),
+               itertools.repeat(lambda_15, nb_tot),
+               itertools.repeat(lambda_25, nb_tot),
+               itertools.repeat(lambda_55, nb_tot),
+               itertools.repeat(val1, nb_tot),
+               itertools.repeat(val2, nb_tot),
+               itertools.repeat(val3, nb_tot),
+               itertools.repeat(val4, nb_tot),
+               itertools.repeat(val5, nb_tot),
+               itertools.repeat(theta_1, nb_tot),
+               itertools.repeat(theta_2, nb_tot),
+               itertools.repeat(theta_3, nb_tot),
+               itertools.repeat(sigma_1, nb_tot),
+               itertools.repeat(sigma_2, nb_tot),
+               itertools.repeat(sigma_3, nb_tot),
+               itertools.repeat(density, nb_tot),
+               itertools.repeat(interp_pts, nb_tot),
+               itertools.repeat(normals, nb_tot),
+               itertools.repeat(cosines, nb_tot),
+               itertools.repeat(scale, nb_tot),
+               itertools.repeat(thickness, nb_tot),
+               efforts_x)
+    
+    # Distribute the processing of the error on all the cores
+    error_tot = 0.0
+    with tqdm(total=nb_tot,
+              desc='Compute the stress for all the images',
+              file=sys.stdout,
+              colour='green',
+              position=1,
+              leave=False) as pbar:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            for error in executor.map(_process_pool_wrapper, 
+                                      args, chunksize=1):
+                error_tot += error
+                pbar.update()
+    
+    # Print the total error if requested
     if verbose:
-        print("\n", error, "\n")
-    return error
+        print("\n", error_tot, "\n")
+    return error_tot
 
 
-def _wrapper(x: np.ndarray,
-             to_fit: np.ndarray,
-             extra_vals: np.ndarray,
-             interp_strain: bool,
-             verbose: bool,
-             val1: float,
-             val2: float,
-             val3: float,
-             val4: float,
-             val5: float,
-             exxs: Sequence[np.ndarray],
-             eyys: Sequence[np.ndarray],
-             exys: Sequence[np.ndarray],
-             theta_1: np.ndarray,
-             theta_2: np.ndarray,
-             theta_3: np.ndarray,
-             sigma_1: np.ndarray,
-             sigma_2: np.ndarray,
-             sigma_3: np.ndarray,
-             density_base: np.ndarray,
-             lib_path: Path,
-             interp_pts: np.ndarray,
-             normals: np.ndarray,
-             cosines: np.ndarray,
-             scale: float,
-             thickness: float,
-             efforts_x: Sequence[float],
-             efforts_y: Sequence[float]
-             ) -> float:
+def _least_square_wrapper(x: np.ndarray,
+                          to_fit: np.ndarray,
+                          extra_vals: np.ndarray,
+                          verbose: bool,
+                          val1: float,
+                          val2: float,
+                          val3: float,
+                          val4: float,
+                          val5: float,
+                          exxs: Sequence[np.ndarray],
+                          eyys: Sequence[np.ndarray],
+                          exys: Sequence[np.ndarray],
+                          theta_1: np.ndarray,
+                          theta_2: np.ndarray,
+                          theta_3: np.ndarray,
+                          sigma_1: np.ndarray,
+                          sigma_2: np.ndarray,
+                          sigma_3: np.ndarray,
+                          density_base: np.ndarray,
+                          lib_path: Path,
+                          interp_pts: np.ndarray,
+                          normals: np.ndarray,
+                          cosines: np.ndarray,
+                          scale: float,
+                          thickness: float,
+                          efforts_x: Sequence[float]
+                          ) -> float:
     """Parses the arguments from the optimization function, to pass them to the
     function computing the error.
 
@@ -692,7 +592,9 @@ def optimize_diagonals(lib_path: Path,
                        nb_interp_diag: int,
                        diagonal_downscaling: int,
                        verbose: bool,
-                       dest_file: Path) -> None:
+                       dest_file: Path,
+                       index: int = 0,
+                       lock: RLockType | None = None) -> None:
     """Takes a set of images as an input, and finds the best set of material
     parameters that minimizes the error between the measured effort and the
     computed one over all the images on the diagonals.
@@ -725,6 +627,10 @@ def optimize_diagonals(lib_path: Path,
             displayed.
         dest_file: Path to a .npy file where to store the output of the
             optimization.
+        index: Index of the processed image in case only one image is being
+            processed, otherwise leave to default.
+        lock: A lock to avoid concurrency between processes when writing in the
+           results file.
     """
 
     # Perform a first processing on the input data
@@ -761,7 +667,10 @@ def optimize_diagonals(lib_path: Path,
     x_scale = x_scale[to_fit]
 
     # Perform the optimization
-    fit = least_squares(_wrapper, x0, bounds=bounds, x_scale=x_scale,
+    fit = least_squares(_least_square_wrapper, 
+                        x0, 
+                        bounds=bounds, 
+                        x_scale=x_scale,
                         kwargs={'to_fit': to_fit,
                                 'extra_vals': extra_vals,
                                 'verbose': verbose,
@@ -789,33 +698,42 @@ def optimize_diagonals(lib_path: Path,
                                 'efforts_x': efforts_x})
 
     # The labels of all the value to save for making the model
-    labels = ("val1", "val2", "val3", "val4", "val5", "density_min",
+    labels = ("idx", "val1", "val2", "val3", "val4", "val5", "density_min",
               "lambda_h", "lambda_11", "lambda_21", "lambda_51", "lambda_12",
               "lambda_22", "lambda_52", "lambda_13", "lambda_23", "lambda_53",
               "lambda_14", "lambda_24", "lambda_54", "lambda_15", "lambda_25",
               "lambda_55")
 
-    # Load previous results if they already exist at the indicated location
-    if dest_file.exists() and dest_file.is_file():
-        results = pd.read_csv(dest_file)
-    else:
-        results = pd.DataFrame(columns=labels)
+    # If no lock was given just create a useless one
+    if lock is None:
+        lock = RLock()
 
-    # Store the various order coefficients
-    new_vals = pd.Series()
-    for label, val in zip(labels[:5], order_coeffs.tolist(), strict=True):
-        new_vals[label] = val
+    # Protect writing to results file with lock
+    with lock:
 
-    # Store all the other values for the material coefficients
-    extra = iter(extra_vals.tolist())
-    fitted = iter(fit.x.tolist())
-    for label, flag in zip(labels[5:], to_fit.tolist(), strict=True):
-        if flag:
-            new_vals[label] = next(fitted)
+        # Load previous results if they already exist at the indicated location
+        if dest_file.exists() and dest_file.is_file():
+            results = pd.read_csv(dest_file)
         else:
-            new_vals[label] = next(extra)
+            results = pd.DataFrame(columns=labels)
 
-    # Fuse the new results with the existing ones and save to a csv file
-    results = pd.concat((results, new_vals.to_frame().transpose()),
-                        ignore_index=True)
-    results.to_csv(dest_file, columns=labels, index=False)
+        # Store the various order coefficients
+        new_vals = pd.Series()
+        new_vals[labels[0]] = index
+
+        for label, val in zip(labels[1:6], order_coeffs.tolist(), strict=True):
+            new_vals[label] = val
+
+        # Store all the other values for the material coefficients
+        extra = iter(extra_vals.tolist())
+        fitted = iter(fit.x.tolist())
+        for label, flag in zip(labels[6:], to_fit.tolist(), strict=True):
+            if flag:
+                new_vals[label] = next(fitted)
+            else:
+                new_vals[label] = next(extra)
+
+        # Fuse the new results with the existing ones and save to a csv file
+        results = pd.concat((results, new_vals.to_frame().transpose()),
+                            ignore_index=True)
+        results.to_csv(dest_file, columns=labels, index=False)
