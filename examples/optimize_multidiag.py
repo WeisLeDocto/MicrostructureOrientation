@@ -73,7 +73,7 @@ if __name__ == "__main__":
     efforts_y = tuple(0.0 for _ in efforts_x)
 
     # The multiplicative factors to apply to each order of the model
-    order_coeffs = np.array((1.0, 0.0, 1.0, 0.0, 0.0))
+    order_coeffs = np.array((1.0, 1.0, 0.0, 0.0, 0.0))
 
     # Parameters measured during the test
     scale = 0.01
