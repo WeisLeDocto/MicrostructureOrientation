@@ -519,13 +519,13 @@ void calc_stress(double exx,
       /// depending on the value of m
       if (abs(m) < 0.01) {
         homogenized = zero_m_approximation(
-          lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], sigstd[i], 
+          lamh, lam1[j], lam2[j], lam3[j], lam4[j], lam5[j], sigstd[i],
           m, true).exp();
       }
       else {
         homogenized = kelvin_integrated_tensor(
-          lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], 
-          sigstd[i], m, true).pow(1.0 / m);
+          lamh, lam1[j], lam2[j], lam3[j], lam4[j], lam5[j], sigstd[i],
+          m, true).pow(1.0 / m);
       }
 
       /// Rotate the homogenized tensor to align it with the fibers
