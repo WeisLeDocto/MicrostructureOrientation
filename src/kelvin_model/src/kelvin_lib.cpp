@@ -121,7 +121,6 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
   
   const double exp_neg2s = 1.0 / exp_2s;
   const double exp_neg4s = 1.0 / exp_4s;
-  const double exp_neg6s = 1.0 / exp_6s;
   const double exp_neg8s = 1.0 / exp_8s;
   const double exp_neg10s = 1.0 / exp_10s;
   const double exp_neg16s = 1.0 / exp_16s;
@@ -354,7 +353,6 @@ float calc_ezz_plane_stress(
 
   /// Compute the zz strain component
   double szz = stiff_tot.dot(strain);
-  double prev_szz = szz;
 
   /// Stop here if the stress is already close enough to 0
   if (abs(szz) < stop_crit) return strain(2, 0);
@@ -469,7 +467,6 @@ int calc_stress(double exx,
 
   /// Compute eigenvalues of the strain tensor
   const double trace = exx + eyy;
-  const double det = exx * eyy - exy * exy;
   const double sqrt_term = sqrt((exx - eyy) * (exx - eyy) + 4.0 * exy * exy);
   const double lambda1 = (trace + sqrt_term) * 0.5;
   const double lambda2 = (trace - sqrt_term) * 0.5;
