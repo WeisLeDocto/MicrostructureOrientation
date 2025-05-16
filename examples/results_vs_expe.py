@@ -67,8 +67,8 @@ if __name__ == '__main__':
     # Other parameters driving the optimization process
     nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
-    results_file = Path("/home/weis/Desktop/HDR/results.csv")
-    dest_file = Path("/home/weis/Desktop/HDR/results_comp.csv")
+    results_file = Path("/home/weis/Desktop/HDR/7LX1_2/results_multi.csv")
+    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results_comp.csv")
 
     compare_results_expe(lib_path,
                          ref_img,

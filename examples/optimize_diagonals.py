@@ -85,7 +85,6 @@ if __name__ == "__main__":
     nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
     verbose = False
-    dest_file = Path("/home/weis/Desktop/HDR/results.txt")
 
     # Optimize on each single image individually
     for img, f_x, f_y in tqdm(zip(def_images, efforts_x, efforts_y),
@@ -113,3 +112,4 @@ if __name__ == "__main__":
                            diagonal_downscaling,
                            verbose,
                            dest_file)
+    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results.csv")
