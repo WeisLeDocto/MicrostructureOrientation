@@ -35,16 +35,16 @@ if __name__ == "__main__":
     peaks = np.radians(np.load(peaks_path)['arr_0'])
 
     # Initial guess for the optimization
-    x0 = np.concatenate((np.array((0.00043865203019722535,
-                                   27.520274700417893),
+    x0 = np.concatenate((np.array((0.16205160432737423,
+                                   13.478607766848805),
                                   dtype=np.float64),
-                         np.array((0.2495873752929645,
-                                   1.3366019501003517,
-                                   1.9457401277770343),
+                         np.array((0.17899774828876716,
+                                   0.7517522864162445,
+                                   1.5655029619999858),
                                   dtype=np.float64),
-                         np.tile(np.array((0.8783740443867915,
-                                           0.14472992624487574,
-                                           1.010716786369869),
+                         np.tile(np.array((9.91759017825144,
+                                           0.24952165920669747,
+                                           1.0655685006767808),
                                           dtype=np.float64),
                                  4)), axis=0)
 
