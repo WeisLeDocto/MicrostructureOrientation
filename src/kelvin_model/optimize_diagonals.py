@@ -267,7 +267,6 @@ def error_diags_only(lib_path: Path,
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         effort_x: The measured effort in x during the test.
-        effort_y: The measured effort in y during the test.
 
     Returns:
         The error in the computed force along the diagonals, normalized by
@@ -287,8 +286,8 @@ def error_diags_only(lib_path: Path,
                                              sigma_2,
                                              sigma_3,
                                              density)
-
-    # Compute the stress only on the diagonals
+    
+    # Calculate the stress values
     sxx, syy, sxy = compute_stress(lib_path,
                                    exx_diags,
                                    eyy_diags,
@@ -321,23 +320,23 @@ def error_diags_only(lib_path: Path,
                                    sigma_2_diags,
                                    sigma_3_diags,
                                    density_diags)
-
-    comp_force_x, comp_force_y = stress_diag_to_force(sxx,
-                                                      syy,
-                                                      sxy,
-                                                      density.shape[0],
-                                                      interp_pts.shape[1],
-                                                      normals,
-                                                      cosines,
-                                                      scale,
-                                                      thickness)
-
+        
+    # Derive the force from the stress fields
+    comp_force_x, _ = stress_diag_to_force(sxx,
+                                           syy,
+                                           sxy,
+                                           density.shape[0],
+                                           interp_pts.shape[1],
+                                           normals,
+                                           cosines,
+                                           scale,
+                                           thickness)
+    
     # Return the error as the difference between the computed and expect effort
     return abs(float(np.median(comp_force_x)) - effort_x)
 
 
 def error_diagonals(lib_path: Path,
-                    interp_strain: bool,
                     verbose: bool,
                     exxs: Sequence[np.ndarray],
                     eyys: Sequence[np.ndarray],
@@ -375,8 +374,7 @@ def error_diagonals(lib_path: Path,
                     cosines: np.ndarray,
                     scale: float,
                     thickness: float,
-                    efforts_x: Sequence[float],
-                    efforts_y: Sequence[float]) -> float:
+                    efforts_x: Sequence[float]) -> float:
     """Computes for each image the error in the calculated forces along
     diagonals for the given set of material parameters, and returns the sum of
     the error for all images.
@@ -384,9 +382,6 @@ def error_diagonals(lib_path: Path,
     Args:
         lib_path:  Path to the .so file containing the shared library for
           computing the stress.
-        interp_strain: If True, performs diagonal interpolation on the strain
-            before computing the stress, otherwise performs interpolation on
-            the stress after computing it for the entire image.
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
             displayed.
@@ -441,8 +436,6 @@ def error_diagonals(lib_path: Path,
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         efforts_x: Sequence of floats representing the measured force in the x
-            direction, one for each image.
-        efforts_y: Sequence of floats representing the measured force in the y
             direction, one for each image.
 
     Returns:
@@ -551,9 +544,6 @@ def _wrapper(x: np.ndarray,
             fit or if it is fixed.
         extra_vals: Numpy array containing the fixed values, which are a subset
             of all the material parameters.
-        interp_strain: If True, performs diagonal interpolation on the strain
-            before computing the stress, otherwise performs interpolation on
-            the stress after computing it for the entire image.
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
             displayed.
@@ -595,8 +585,6 @@ def _wrapper(x: np.ndarray,
         thickness: The thickness of the sample in mm, as a float.
         efforts_x: Sequence of floats representing the measured force in the x
             direction, one for each image.
-        efforts_y: Sequence of floats representing the measured force in the y
-            direction, one for each image.
 
     Returns:
         The total error as a float, for all the images together.
@@ -637,7 +625,6 @@ def _wrapper(x: np.ndarray,
     density = calc_density(density_base, dens_min)
 
     return error_diagonals(lib_path,
-                           interp_strain,
                            verbose,
                            exxs,
                            eyys,
@@ -675,8 +662,7 @@ def _wrapper(x: np.ndarray,
                            cosines,
                            scale,
                            thickness,
-                           efforts_x,
-                           efforts_y)
+                           efforts_x)
 
 
 def optimize_diagonals(lib_path: Path,
@@ -687,12 +673,10 @@ def optimize_diagonals(lib_path: Path,
                        x0: np.ndarray,
                        def_images: Sequence[np.ndarray],
                        efforts_x: Sequence[float],
-                       efforts_y: Sequence[float],
                        order_coeffs: np.ndarray,
                        scale: float,
                        thickness: float,
                        nb_interp_diag: int,
-                       interp_strain: bool,
                        diagonal_downscaling: int,
                        verbose: bool,
                        dest_file: Path) -> None:
@@ -716,16 +700,11 @@ def optimize_diagonals(lib_path: Path,
             parameters.
         efforts_x: Sequence of floats representing the measured force in the x
             direction, one for each image.
-        efforts_y: Sequence of floats representing the measured force in the y
-            direction, one for each image.
         order_coeffs: Numpy array containing the multiplicative factor for all
             the orders of the material model.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         nb_interp_diag: Number of interpolation points along the diagonals.
-        interp_strain: If True, performs diagonal interpolation on the strain
-            before computing the stress, otherwise performs interpolation on
-            the stress after computing it for the entire image.
         diagonal_downscaling: Only one out of this number diagonals will be
             used for performing the optimization.
         verbose: It True, the values of the parameters are printed at each
@@ -772,7 +751,6 @@ def optimize_diagonals(lib_path: Path,
     fit = least_squares(_wrapper, x0, bounds=bounds, x_scale=x_scale,
                         kwargs={'to_fit': to_fit,
                                 'extra_vals': extra_vals,
-                                'interp_strain': interp_strain,
                                 'verbose': verbose,
                                 'val1': order_coeffs[0],
                                 'val2': order_coeffs[1],
@@ -795,8 +773,7 @@ def optimize_diagonals(lib_path: Path,
                                 'cosines': cosines,
                                 'scale': scale,
                                 'thickness': thickness,
-                                'efforts_x': efforts_x,
-                                'efforts_y': efforts_y})
+                                'efforts_x': efforts_x})
 
     # The labels of all the value to save for making the model
     labels = ("val1", "val2", "val3", "val4", "val5", "density_min",
