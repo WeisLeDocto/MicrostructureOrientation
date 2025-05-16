@@ -10,9 +10,7 @@ authors = [
 maintainers = [
     {name = "Antoine Weisrock", email = "antoine.weisrock@gmail.com"},
 ]
-description ="""A python module for the analysis of microstructure orientation
-of transparency images of soft tissue, and the use of a Kelvin-based
-mechanical model to describe their mechanical behavior."""
+description ="""A python module for the analysis of microstructure orientation of transparency images of soft tissue, and the use of a Kelvin-based mechanical model to describe their mechanical behavior."""
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 keywords = ["Microstructure", "Orientation", "Gabor filter"]
@@ -35,10 +33,19 @@ dependencies = [
 version = "0.0.1"
 
 [tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = false
 ext-modules = [
   {name = "kelvin_model.kelvin_lib", sources = ["src/kelvin_model/src/kelvin_lib.cpp"]}
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["kelvin_model*", "microstructure_orientation*"]
+exclude = []
 namespaces = false
+
+[tool.setuptools.package-data]
+kelvin_model = [
+    "include/kelvin_lib.hpp",
+    "src/kelvin_lib.cpp"]
