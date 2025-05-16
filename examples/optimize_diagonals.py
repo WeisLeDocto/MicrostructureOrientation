@@ -6,8 +6,31 @@ import pandas as pd
 import re
 from tqdm.auto import tqdm
 import sys
+import concurrent.futures
+import itertools
+from collections.abc import Sequence
+from multiprocessing import Manager
 
 from kelvin_model import kelvin_lib_path, optimize_diagonals
+
+
+def _process_pool_wrapper(args: tuple[Path, np.ndarray, np.ndarray, np.ndarray,
+                                      np.ndarray, np.ndarray,
+                                      Sequence[np.ndarray], Sequence[float],
+                                      np.ndarray, float,  float, int, int,
+                                      bool, Path]) -> None:
+    """Wrapper for passing the arguments separately to the worker, for better
+    clarity.
+
+    Args:
+        args: The arguments to pass to the worker, as a single tuple.
+
+    Returns:
+        The computed error as a float.
+    """
+
+    optimize_diagonals(*args)
+
 
 if __name__ == "__main__":
 
@@ -72,7 +95,6 @@ if __name__ == "__main__":
             (effort_data["t(s)"] > idx * 7)
             & (effort_data["t(s)"] < (idx * 7) + 5)].mean()
         for idx in indexes)
-    efforts_y = tuple(0.0 for _ in efforts_x)
 
     # The multiplicative factors to apply to each order of the model
     order_coeffs = np.array((1.0, 1.0, 0.0, 0.0, 0.0))
@@ -85,31 +107,36 @@ if __name__ == "__main__":
     nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
     verbose = False
-
-    # Optimize on each single image individually
-    for img, f_x, f_y in tqdm(zip(def_images, efforts_x, efforts_y),
-                              total=len(def_images),
-                              desc='Perform optimization on each single image',
-                              file=sys.stdout,
-                              colour='green',
-                              position=0,
-                              leave=True):
-
-        optimize_diagonals(lib_path,
-                           ref_img,
-                           density_base,
-                           gauss_fit,
-                           peaks,
-                           x0,
-                           (img,),
-                           (f_x,),
-                           (f_y,),
-                           order_coeffs,
-                           scale,
-                           thickness,
-                           nb_interp_diag,
-                           interp_strain,
-                           diagonal_downscaling,
-                           verbose,
-                           dest_file)
     dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results.csv")
+    manager = Manager()
+    lock = manager.RLock()
+    
+    nb_tot = len(def_images)
+    pool_args = zip(itertools.repeat(lib_path, nb_tot),
+                    itertools.repeat(ref_img, nb_tot),
+                    itertools.repeat(density_base, nb_tot),
+                    itertools.repeat(gauss_fit, nb_tot),
+                    itertools.repeat(peaks, nb_tot),
+                    itertools.repeat(x0, nb_tot),
+                    tuple((img,) for img in def_images),
+                    tuple((f_x,) for f_x in efforts_x),
+                    itertools.repeat(order_coeffs, nb_tot),
+                    itertools.repeat(scale, nb_tot),
+                    itertools.repeat(thickness, nb_tot),
+                    itertools.repeat(nb_interp_diag, nb_tot),
+                    itertools.repeat(diagonal_downscaling, nb_tot),
+                    itertools.repeat(verbose, nb_tot),
+                    itertools.repeat(dest_file, nb_tot),
+                    indexes,
+                    itertools.repeat(lock, nb_tot))
+    
+    with tqdm(total=len(def_images),
+              desc='Perform optimization for all the images',
+              file=sys.stdout,
+              colour='green',
+              position=0,
+              leave=False) as pbar:
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            for _ in executor.map(_process_pool_wrapper,
+                                  pool_args, chunksize=1):
+                pbar.update()

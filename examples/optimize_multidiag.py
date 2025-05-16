@@ -70,7 +70,6 @@ if __name__ == "__main__":
             (effort_data["t(s)"] > idx * 7)
             & (effort_data["t(s)"] < (idx * 7) + 5)].mean()
         for idx in indexes)
-    efforts_y = tuple(0.0 for _ in efforts_x)
 
     # The multiplicative factors to apply to each order of the model
     order_coeffs = np.array((1.0, 1.0, 0.0, 0.0, 0.0))
@@ -94,12 +93,12 @@ if __name__ == "__main__":
                        x0,
                        def_images,
                        efforts_x,
-                       efforts_y,
                        order_coeffs,
                        scale,
                        thickness,
                        nb_interp_diag,
-                       interp_strain,
                        diagonal_downscaling,
                        verbose,
-                       dest_file)
+                       dest_file,
+                       idx=0,
+                       lock=None)
