@@ -57,8 +57,7 @@ if __name__ == "__main__":
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/10_3484.npy"),
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/11_3662.npy"),
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/12_3840.npy"),
-                        Path("/home/weis/Desktop/HDR/7LX1_2/hdr/13_4018.npy"),
-                        Path("/home/weis/Desktop/HDR/7LX1_2/hdr/14_4196.npy"))
+                        Path("/home/weis/Desktop/HDR/7LX1_2/hdr/13_4018.npy"))
     def_images = tuple(np.load(img) for img in def_images_paths)
 
     # Effort measured during the test
