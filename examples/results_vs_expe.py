@@ -65,7 +65,7 @@ if __name__ == '__main__':
     thickness = 0.54
 
     # Other parameters driving the optimization process
-    nb_interp_diag = ref_img.shape[0]
+    nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
     results_file = Path("/home/weis/Desktop/HDR/results.csv")
     dest_file = Path("/home/weis/Desktop/HDR/results_comp.csv")
