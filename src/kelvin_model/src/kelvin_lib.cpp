@@ -501,13 +501,15 @@ void calc_stress(double exx,
   for (int i = 0; i < 3; i++) {
 
     /// A standard deviation too low indicates that a layer was not detected
-    if (sigstd[i] < 0.01) break;
+    if (sigstd[i] < 0.01 && i > 0) break;
 
     /// Compute the integration factor as a function of the angle between the
     /// load and the fibers
     double m = cos(2.0 * (theta_load - theta[i]));
     /// Correct by the factor to account for anisotropy in the strain
-    m *= (abs(lambda1 - lambda2)) / (abs(lambda1) + abs(lambda2));
+    if (abs(lambda1) + abs(lambda2) > 1.0e-12) {
+      m *= (abs(lambda1 - lambda2)) / (abs(lambda1) + abs(lambda2));
+    }
 
     /// Iterate over the 5 orders of the model
     for (int j = 0; j < 5; j++) {
@@ -627,7 +629,7 @@ void calc_stresses(double* exx,
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
 
-      idx = i * cols + j;      
+      idx = i * cols + j;
       calc_stress(exx[idx],
                   eyy[idx],
                   exy[idx],
