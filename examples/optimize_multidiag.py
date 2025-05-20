@@ -100,5 +100,5 @@ if __name__ == "__main__":
                        diagonal_downscaling,
                        verbose,
                        dest_file,
-                       idx=0,
+                       index=0,
                        lock=None)
