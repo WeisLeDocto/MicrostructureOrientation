@@ -151,16 +151,16 @@ def compare_results_expe(lib_path: Path,
                                                           thickness)
 
         # Only keep the average force in x and y
-        forces_x.append(np.average(comp_force_x))
-        forces_y.append(np.average(comp_force_y))
+        forces_x.append(np.median(comp_force_x))
+        forces_y.append(np.median(comp_force_y))
 
     # Write all the force data into a single file
     results = pd.DataFrame({'time': timestamps,
-                            'xx_strain': tuple(np.average(exx)
+                            'xx_strain': tuple(np.median(exx)
                                                for exx in exxs),
-                            'yy_strain': tuple(np.average(eyy)
+                            'yy_strain': tuple(np.median(eyy)
                                                for eyy in eyys),
-                            'xy_strain': tuple(np.average(exy)
+                            'xy_strain': tuple(np.median(exy)
                                                for exy in exys),
                             'measured_x': efforts_x,
                             'calculated_x': forces_x,
