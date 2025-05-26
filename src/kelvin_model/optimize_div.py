@@ -156,7 +156,8 @@ def error_div_one_image(lib_path: Path,
                         axis=None)
     error_div /= exx.shape[0] * exx.shape[1]
 
-    return error_div
+    # Increase error for better readability
+    return 1.0e6 * error_div
 
 
 def error_divergence(lib_path: Path,
@@ -742,9 +743,7 @@ def optimize_divergence(lib_path: Path,
     fit_mult = least_squares(_least_square_wrapper_mult,
                              (1.0,),
                              bounds=Bounds(lb=0.0, ub=np.inf),
-                             kwargs={'to_fit': to_fit,
-                                     'extra_vals': extra_vals,
-                                     'verbose': verbose,
+                             kwargs={'verbose': verbose,
                                      'val1': order_coeffs[0],
                                      'val2': order_coeffs[1],
                                      'val3': order_coeffs[2],
