@@ -6,8 +6,6 @@ from scipy.optimize import least_squares, Bounds
 from pathlib import Path
 from tqdm.auto import tqdm
 import sys
-import itertools
-from multiprocessing.synchronize import RLock as RLockType
 
 from .compute_stress import compute_stress
 from .kelvin_utils import (prepare_data, diagonals_interpolator, calc_density,
@@ -586,8 +584,7 @@ def optimize_diagonals(lib_path: Path,
                        diagonal_downscaling: int,
                        verbose: bool,
                        dest_file: Path,
-                       index: int = 0,
-                       lock: RLockType | None = None) -> None:
+                       index: int = 0) -> None:
     """Takes a set of images as an input, and finds the best set of material
     parameters that minimizes the error between the measured effort and the
     computed one over all the images on the diagonals.
@@ -622,8 +619,6 @@ def optimize_diagonals(lib_path: Path,
             optimization.
         index: Index of the processed image in case only one image is being
             processed, otherwise leave to default.
-        lock: A lock to avoid concurrency between processes when writing in the
-           results file.
     """
 
     # Perform a first processing on the input data
@@ -696,5 +691,4 @@ def optimize_diagonals(lib_path: Path,
                  order_coeffs,
                  to_fit,
                  extra_vals,
-                 index,
-                 lock)
+                 index)
