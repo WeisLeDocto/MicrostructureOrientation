@@ -225,12 +225,8 @@ Eigen::Matrix<double, 6, 6> rotate(const Eigen::Matrix<double, 6, 6> tensor,
                                    double angle) {
 
   /// Build the rotation matrix in R3
-  Eigen::Matrix<double, 3, 3> rot_mat;
-  const double cos_ang = cos(angle);
-  const double sin_ang = sin(angle);
-  rot_mat << cos_ang, -sin_ang, 0.0,
-             sin_ang,  cos_ang, 0.0,
-             0.0,      0.0,     1.0;
+  Eigen::Matrix<double, 3, 3> rot_mat =
+      Eigen::AngleAxisd(angle, Eigen::Vector3d::UnitZ()).toRotationMatrix();
 
   /// Build the rotation tensor from the rotation matrix
   Eigen::Matrix<double, 6, 6> rot_ten;
