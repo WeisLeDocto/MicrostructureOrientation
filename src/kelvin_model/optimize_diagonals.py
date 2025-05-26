@@ -6,7 +6,6 @@ from scipy.optimize import least_squares, Bounds
 from pathlib import Path
 from tqdm.auto import tqdm
 import sys
-import concurrent.futures
 import itertools
 from multiprocessing.synchronize import RLock as RLockType
 
@@ -357,60 +356,55 @@ def error_diagonals(lib_path: Path,
                                      scale,
                                      thickness,
                                      efforts_x[0])
-    
-    # Arrange the arguments to pass the to the ProcessPoolExecutor
-    args = zip(itertools.repeat(lib_path, nb_tot),
-               exxs,
-               eyys,
-               exys,
-               itertools.repeat(lambda_h, nb_tot),
-               itertools.repeat(lambda_11, nb_tot),
-               itertools.repeat(lambda_21, nb_tot),
-               itertools.repeat(lambda_51, nb_tot),
-               itertools.repeat(lambda_12, nb_tot),
-               itertools.repeat(lambda_22, nb_tot),
-               itertools.repeat(lambda_52, nb_tot),
-               itertools.repeat(lambda_13, nb_tot),
-               itertools.repeat(lambda_23, nb_tot),
-               itertools.repeat(lambda_53, nb_tot),
-               itertools.repeat(lambda_14, nb_tot),
-               itertools.repeat(lambda_24, nb_tot),
-               itertools.repeat(lambda_54, nb_tot),
-               itertools.repeat(lambda_15, nb_tot),
-               itertools.repeat(lambda_25, nb_tot),
-               itertools.repeat(lambda_55, nb_tot),
-               itertools.repeat(val1, nb_tot),
-               itertools.repeat(val2, nb_tot),
-               itertools.repeat(val3, nb_tot),
-               itertools.repeat(val4, nb_tot),
-               itertools.repeat(val5, nb_tot),
-               itertools.repeat(theta_1, nb_tot),
-               itertools.repeat(theta_2, nb_tot),
-               itertools.repeat(theta_3, nb_tot),
-               itertools.repeat(sigma_1, nb_tot),
-               itertools.repeat(sigma_2, nb_tot),
-               itertools.repeat(sigma_3, nb_tot),
-               itertools.repeat(density, nb_tot),
-               itertools.repeat(interp_pts, nb_tot),
-               itertools.repeat(normals, nb_tot),
-               itertools.repeat(cosines, nb_tot),
-               itertools.repeat(scale, nb_tot),
-               itertools.repeat(thickness, nb_tot),
-               efforts_x)
-    
+
     # Distribute the processing of the error on all the cores
     error_tot = 0.0
-    with tqdm(total=nb_tot,
-              desc='Compute the stress for all the images',
-              file=sys.stdout,
-              colour='green',
-              position=1,
-              leave=False) as pbar:
-        with concurrent.futures.ProcessPoolExecutor() as executor:
-            for error in executor.map(_process_pool_wrapper, 
-                                      args, chunksize=1):
-                error_tot += error
-                pbar.update()
+    for exx, eyy, exy, effort_x in tqdm(zip(exxs, eyys, exys, efforts_x),
+                                        total=nb_tot,
+                                        desc='Compute the stress for all the '
+                                             'images',
+                                        file=sys.stdout,
+                                        colour='green',
+                                        position=1,
+                                        leave=False):
+        error_tot += error_diags_one_image(lib_path,
+                                           exx,
+                                           eyy,
+                                           exy,
+                                           lambda_h,
+                                           lambda_11,
+                                           lambda_21,
+                                           lambda_51,
+                                           lambda_12,
+                                           lambda_22,
+                                           lambda_52,
+                                           lambda_13,
+                                           lambda_23,
+                                           lambda_53,
+                                           lambda_14,
+                                           lambda_24,
+                                           lambda_54,
+                                           lambda_15,
+                                           lambda_25,
+                                           lambda_55,
+                                           val1,
+                                           val2,
+                                           val3,
+                                           val4,
+                                           val5,
+                                           theta_1,
+                                           theta_2,
+                                           theta_3,
+                                           sigma_1,
+                                           sigma_2,
+                                           sigma_3,
+                                           density,
+                                           interp_pts,
+                                           normals,
+                                           cosines,
+                                           scale,
+                                           thickness,
+                                           effort_x)
     error_tot /= nb_tot
     
     # Print the total error if requested
