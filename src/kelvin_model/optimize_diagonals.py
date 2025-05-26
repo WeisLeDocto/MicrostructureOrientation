@@ -55,7 +55,7 @@ def error_diags_one_image(lib_path: Path,
 
     Args:
         lib_path: Path to the .so file containing the shared library for
-          computing the stress.
+            computing the stress.
         exx: Numpy array containing for all pixels the xx strain.
         eyy: Numpy array containing for all pixels the yy strain.
         exy: Numpy array containing for all pixels the xy strain.
@@ -249,11 +249,11 @@ def error_diagonals(lib_path: Path,
                     efforts_x: Sequence[float]) -> float:
     """Computes for each image the error in the calculated forces along
     diagonals for the given set of material parameters, and returns the sum of
-    the error for all images.
+    the errors for all images.
 
     Args:
         lib_path:  Path to the .so file containing the shared library for
-          computing the stress.
+            computing the stress.
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
             displayed.
@@ -355,7 +355,7 @@ def error_diagonals(lib_path: Path,
                                      thickness,
                                      efforts_x[0])
 
-    # Distribute the processing of the error on all the cores
+    # Iterate over all the images and get each individual error
     error_tot = 0.0
     for exx, eyy, exy, effort_x in tqdm(zip(exxs, eyys, exys, efforts_x),
                                         total=nb_tot,
@@ -477,7 +477,7 @@ def _least_square_wrapper(x: np.ndarray,
         density_base: The base image from which to compute the density,
             normally one the raw images acquired for exposure fusion.
         lib_path:  Path to the .so file containing the shared library for
-          computing the stress.
+            computing the stress.
         interp_pts: A numpy array containing all the points over which to
             compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
@@ -591,7 +591,7 @@ def optimize_diagonals(lib_path: Path,
 
     Args:
         lib_path:  Path to the .so file containing the shared library for
-          computing the stress.
+            computing the stress.
         ref_img: The reference image for correlation.
         density_base: The base image from which to compute the density,
             normally one the raw images acquired for exposure fusion.
