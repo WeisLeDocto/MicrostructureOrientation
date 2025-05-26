@@ -83,7 +83,8 @@ if __name__ == "__main__":
     img_downscale = 0.25
     cross_section_downscaling = 5
     verbose = True
-    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results_multi_div.csv")
+    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results/"
+                     "results_multi_div.csv")
 
     # Optimize an all the images at once
     optimize_divergence(lib_path,
