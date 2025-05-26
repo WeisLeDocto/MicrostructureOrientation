@@ -298,20 +298,25 @@ Eigen::Matrix<double, 6, 1> final_stress(
     const std::array<double, 5> &vals) {
     
   std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
-  Eigen::Matrix<double, 6, 6> stiff_tot = Eigen::Matrix<double, 6, 6>::Zero();
+  /// Initialize order 0
+  Eigen::Matrix<double, 6, 6> stiff_tot = vals[0] * stiffness[0];
 
-  /// Iterate over all the orders
-  for (int j = 0; j < 5; j++) {
-    /// Skip inactive orders
-    if (vals[j] == 0.0) continue;
+  /// Pre-compute the valid orders
+  std::vector<size_t> valid_orders;
+  #pragma GCC unroll 4
+  #pragma GCC ivdep
+  for (size_t j = 1; j < vals.size(); ++j) {
+    if (vals[j] > 1.0e-12) valid_orders.push_back(j);
+  }
+
+  /// Iterate over all the valid orders
+  for (size_t j : valid_orders) {
 
     /// For each order greater than 1, there is a multiplicative factor
     /// dependent on the strain and stiffness
-    if (j > 0) {
-      factor[j] = strain.dot(stiffness[j] * strain);
-    }
+    factor[j] = strain.dot(stiffness[j] * strain);
 
-    // The total equivalent stiffness is the sum of the ones for each order
+    /// The total equivalent stiffness is the sum of the ones for each order
     stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j];
   }
   
@@ -332,17 +337,24 @@ float calc_ezz_plane_stress(
     const int max_iter) {
   
   std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
-  Eigen::Matrix<double, 1, 6> stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
+  /// Initialize order 0
+  Eigen::Matrix<double, 1, 6> stiff_tot = vals[0] * stiffness[0].row(2);
 
-  /// Iterate over all the orders
-  for (int j = 0; j < 5; j++) {
-    /// Skip inactive orders
-    if (vals[j] == 0.0) continue;
+  /// Pre-compute the valid orders
+  std::vector<size_t> valid_orders;
+  #pragma GCC unroll 4
+  #pragma GCC ivdep
+  for (size_t j = 1; j < vals.size(); ++j) {
+    if (vals[j] > 1.0e-12) valid_orders.push_back(j);
+  }
+
+  /// Iterate over all the valid orders
+  for (size_t j : valid_orders) {
+
     /// For each order greater than 1, there is a multiplicative factor
     /// dependent on the strain and stiffness
-    if (j > 0) {
-      factor[j] = strain.dot(stiffness[j] * strain);
-    }
+    factor[j] = strain.dot(stiffness[j] * strain);
+
     /// The total equivalent stiffness is the sum of the ones for each order
     stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
   }
@@ -371,17 +383,16 @@ float calc_ezz_plane_stress(
     ++n;
     
     factor = {1.0, 0.0, 0.0, 0.0, 0.0};
-    stiff_tot = Eigen::Matrix<double, 1, 6>::Zero();
+    /// Initialize order 0
+    stiff_tot = vals[0] * stiffness[0].row(2);
 
-    /// Iterate over all the orders
-    for (int j = 0; j < 5; j++) {
-      /// Skip inactive orders
-      if (vals[j] == 0.0) continue;
+    /// Iterate over all the valid orders
+    for (size_t j : valid_orders) {
+
       /// For each order greater than 1, there is a multiplicative factor
       /// dependent on the strain and stiffness
-      if (j > 0) {
-        factor[j] = strain.dot(stiffness[j] * strain);
-      }
+      factor[j] = strain.dot(stiffness[j] * strain);
+
       /// The total equivalent stiffness is the sum of the ones for each order
       stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
     }
@@ -492,13 +503,26 @@ void calc_stress(double exx,
             Eigen::Matrix<double, 6, 6>::Zero());
   Eigen::Matrix<double, 6, 6> homogenized;
 
-  /// Iterate over up to three tissue layers
-  int layer_count = 0;
-  for (int i = 0; i < 3; i++) {
+  /// Pre-compute the valid orders
+  std::vector<size_t> valid_orders;
+  #pragma GCC unroll 5
+  #pragma GCC ivdep
+  for (size_t j = 0; j < vals.size(); ++j) {
+    if (vals[j] > 1.0e-12) valid_orders.push_back(j);
+  }
 
+  /// Pre-compute the valid layers
+  std::vector<size_t> valid_layers;
+  #pragma GCC unroll 3
+  #pragma GCC ivdep
+  for (size_t i = 0; i < 3; ++i) {
     /// A standard deviation too low indicates that a layer was not detected
-    if (sigstd[i] < 0.01 && i > 0) break;
+    if (sigstd[i] > 0.01 || i < 1) valid_layers.push_back(i);
+  }
 
+  /// Pre-compute the m values
+  std::array<double, 3> m_vals = {1.0, 1.0, 1.0};
+  for (size_t i : valid_layers) {
     /// Compute the integration factor as a function of the angle between the
     /// load and the fibers
     double m = cos(2.0 * (theta_load - theta[i]));
@@ -506,42 +530,37 @@ void calc_stress(double exx,
     if (abs(lambda1) + abs(lambda2) > 1.0e-12) {
       m *= (abs(lambda1 - lambda2)) / (abs(lambda1) + abs(lambda2));
     }
+    m_vals[i] = m;
+  }
 
-    /// Iterate over the 5 orders of the model
-    for (int j = 0; j < 5; j++) {
+  /// Iterate over up to three tissue layers
+  for (size_t i : valid_layers) {
 
-      /// Skip inactive orders
-      if (vals[j] == 0.0) continue;
+    /// Iterate over the valid orders of the model
+    for (size_t j : valid_orders) {
 
       /// Use the relevant function for computing the homogenized tensor,
       /// depending on the value of m
-      if (abs(m) < 0.01) {
+      if (abs(m_vals[i]) < 0.01) {
         homogenized = zero_m_approximation(
           lamh, lam1[j], lam2[j], lam3[j], lam4[j], lam5[j], sigstd[i],
-          m, true).exp();
+          m_vals[i], true).exp();
       }
       else {
         homogenized = kelvin_integrated_tensor(
           lamh, lam1[j], lam2[j], lam3[j], lam4[j], lam5[j], sigstd[i],
-          m, true).pow(1.0 / m);
+          m_vals[i], true).pow(1.0 / m_vals[i]);
       }
 
       /// Rotate the homogenized tensor to align it with the fibers
-      if (i == 0) {
-        stiffness[j] = rotate(homogenized, theta[i]);
-      }
-      else {
-        stiffness[j] += rotate(homogenized, theta[i]);
-      }
+      stiffness[j] += rotate(homogenized, theta[i]);
       
     }
-    
-    ++layer_count;
   }
 
   /// The final stiffness tensor is averaged over the detected layers
-  for (int j = 0; j < 5; j++) {
-    stiffness[j] = stiffness[j] / layer_count;
+  for (size_t j : valid_orders) {
+    stiffness[j] = stiffness[j] / valid_layers.size();
   }
 
   /// Need to consider 3D to compute the stress in plane stress hypothesis
@@ -565,11 +584,9 @@ void calc_stress(double exx,
   const Eigen::Matrix<double, 6, 1> sig_3d = density * final_stress(stiffness,
                                                                     strain_3d,
                                                                     vals);
-  
   *sxx = sig_3d(0, 0);
   *syy = sig_3d(1, 0);
   *sxy = sig_3d(3, 0);
-
 }
 
 
