@@ -411,6 +411,7 @@ def error_diagonals(lib_path: Path,
                                       args, chunksize=1):
                 error_tot += error
                 pbar.update()
+    error_tot /= nb_tot
     
     # Print the total error if requested
     if verbose:
