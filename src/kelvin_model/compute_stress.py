@@ -91,73 +91,80 @@ def compute_stress(lib_path: Path,
     # Load the shared C++ library
     lib = ctypes.CDLL(str(lib_path))
     
-    # Arrays for storing the result stress
-    sxx = np.empty_like(exx, dtype=np.float64)
-    syy = np.empty_like(exx, dtype=np.float64)
-    sxy = np.empty_like(exx, dtype=np.float64)
+    # Array for storing the result stress
+    stress = np.zeros((*exx.shape, 3), dtype=np.float64, order='C')
+
+    # Store the
+    input_dtype = np.dtype([('exx', np.float64), ('eyy', np.float64),
+                            ('exy', np.float64), ('theta_1', np.float64),
+                            ('theta_2', np.float64), ('theta_3', np.float64),
+                            ('sigma_1', np.float64), ('sigma_2', np.float64),
+                            ('sigma_3', np.float64), ('density', np.float64)],
+                           align=True)
+    input_data = np.zeros(exx.shape, dtype=input_dtype)
+    input_data['exx'] = exx
+    input_data['eyy'] = eyy
+    input_data['exy'] = exy
+    input_data['theta_1'] = theta_1
+    input_data['theta_2'] = theta_2
+    input_data['theta_3'] = theta_3
+    input_data['sigma_1'] = sigma_1
+    input_data['sigma_2'] = sigma_2
+    input_data['sigma_3'] = sigma_3
+    input_data['density'] = density
+
+    lambda_dtype = np.dtype([('lambda_h', np.float64),
+                             ('lambda_11', np.float64),
+                             ('lambda_21', np.float64),
+                             ('lambda_31', np.float64),
+                             ('lambda_41', np.float64),
+                             ('lambda_51', np.float64),
+                             ('lambda_12', np.float64),
+                             ('lambda_22', np.float64),
+                             ('lambda_32', np.float64),
+                             ('lambda_42', np.float64),
+                             ('lambda_52', np.float64),
+                             ('lambda_13', np.float64),
+                             ('lambda_23', np.float64),
+                             ('lambda_33', np.float64),
+                             ('lambda_43', np.float64),
+                             ('lambda_53', np.float64),
+                             ('lambda_14', np.float64),
+                             ('lambda_24', np.float64),
+                             ('lambda_34', np.float64),
+                             ('lambda_44', np.float64),
+                             ('lambda_54', np.float64),
+                             ('lambda_15', np.float64),
+                             ('lambda_25', np.float64),
+                             ('lambda_35', np.float64),
+                             ('lambda_45', np.float64),
+                             ('lambda_55', np.float64),
+                             ('val1', np.float64),
+                             ('val2', np.float64),
+                             ('val3', np.float64),
+                             ('val4', np.float64),
+                             ('val5', np.float64)], align=True)
+    lambda_params = np.array((lambda_h, lambda_11, lambda_21, lambda_51,
+                              lambda_51, lambda_51, lambda_12, lambda_22,
+                              lambda_52, lambda_52, lambda_52, lambda_13,
+                              lambda_23, lambda_53, lambda_53, lambda_53,
+                              lambda_14, lambda_24, lambda_54, lambda_54,
+                              lambda_54, lambda_15, lambda_25, lambda_55,
+                              lambda_55, lambda_55, val1, val2, val3, val4,
+                              val5),
+                             dtype=lambda_dtype)
     
     # The arrays must be contiguous before being passed to C++ code
-    sxx = np.ascontiguousarray(sxx)
-    syy = np.ascontiguousarray(syy)
-    sxy = np.ascontiguousarray(sxy)
-    theta_1 = np.ascontiguousarray(theta_1)
-    theta_2 = np.ascontiguousarray(theta_2)
-    theta_3 = np.ascontiguousarray(theta_3)
-    sigma_1 = np.ascontiguousarray(sigma_1)
-    sigma_2 = np.ascontiguousarray(sigma_2)
-    sigma_3 = np.ascontiguousarray(sigma_3)
-    density = np.ascontiguousarray(density)
-    exx = np.ascontiguousarray(exx)
-    eyy = np.ascontiguousarray(eyy)
-    exy = np.ascontiguousarray(exy)
+    stress = np.ascontiguousarray(stress)
+    input_data = np.ascontiguousarray(input_data)
+    lambda_params = np.ascontiguousarray(lambda_params)
     
     # Compute the stress only on the diagonals
     lib.calc_stresses(
-        exx.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        eyy.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        exy.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        *map(ctypes.c_double, (lambda_h,
-                               lambda_11,
-                               lambda_21,
-                               lambda_51,
-                               lambda_51,
-                               lambda_51,
-                               lambda_12,
-                               lambda_22,
-                               lambda_51,
-                               lambda_51,
-                               lambda_52,
-                               lambda_13,
-                               lambda_23,
-                               lambda_51,
-                               lambda_51,
-                               lambda_53,
-                               lambda_14,
-                               lambda_24,
-                               lambda_51,
-                               lambda_51,
-                               lambda_54,
-                               lambda_15,
-                               lambda_25,
-                               lambda_51,
-                               lambda_51,
-                               lambda_55,
-                               val1,
-                               val2,
-                               val3,
-                               val4,
-                               val5)),
-        theta_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        theta_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        theta_3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        sigma_1.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        sigma_2.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        sigma_3.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        density.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        input_data.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        lambda_params.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         ctypes.c_int(exx.shape[0]),
         ctypes.c_int(exx.shape[1]),
-        sxx.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        syy.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
-        sxy.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
-    
-    return sxx, syy, sxy
+        stress.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+
+    return stress[..., 0], stress[..., 1], stress[..., 2]
