@@ -9,7 +9,6 @@ import sys
 import concurrent.futures
 import itertools
 from collections.abc import Sequence
-from multiprocessing import Manager
 
 from kelvin_model import kelvin_lib_path, optimize_diagonals
 
@@ -108,8 +107,6 @@ if __name__ == "__main__":
     diagonal_downscaling = 20
     verbose = False
     dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results.csv")
-    manager = Manager()
-    lock = manager.RLock()
     
     nb_tot = len(def_images)
     pool_args = zip(itertools.repeat(lib_path, nb_tot),
@@ -127,8 +124,7 @@ if __name__ == "__main__":
                     itertools.repeat(diagonal_downscaling, nb_tot),
                     itertools.repeat(verbose, nb_tot),
                     itertools.repeat(dest_file, nb_tot),
-                    indexes,
-                    itertools.repeat(lock, nb_tot))
+                    indexes)
     
     with tqdm(total=len(def_images),
               desc='Perform optimization for all the images',

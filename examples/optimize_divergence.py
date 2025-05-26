@@ -54,8 +54,8 @@ if __name__ == "__main__":
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/9_3306.npy"),
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/10_3484.npy"),
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/11_3662.npy"),
-                        Path("/home/weis/Desktop/HDR/7LX1_2/hdr/12_3840.npy"),)
-                        #Path("/home/weis/Desktop/HDR/7LX1_2/hdr/13_4018.npy"))
+                        Path("/home/weis/Desktop/HDR/7LX1_2/hdr/12_3840.npy"),
+                        Path("/home/weis/Desktop/HDR/7LX1_2/hdr/13_4018.npy"))
     def_images = tuple(np.load(img).astype(np.float64)
                        for img in def_images_paths)
 
@@ -99,7 +99,5 @@ if __name__ == "__main__":
                         thickness,
                         verbose,
                         dest_file,
-                        img_downscale,
                         cross_section_downscaling,
-                        index=0,
-                        lock=None)
+                        index=0)
