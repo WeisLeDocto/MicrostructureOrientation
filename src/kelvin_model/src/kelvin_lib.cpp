@@ -596,8 +596,7 @@ void calc_stresses(const PixelData* input,
                    const int cols,
                    double* stress) {
 
-  int idx;
-
+  #pragma omp parallel for collapse(2) schedule(static)
   for (int i = 0; i < rows; ++i) {
     for (int j = 0; j < cols; ++j) {
 
