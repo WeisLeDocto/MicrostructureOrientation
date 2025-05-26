@@ -65,6 +65,6 @@ def image_correlation(ref_img: np.ndarray,
                               axis=2),
                      np.stack((np.zeros_like(vals[:, :, 1]), vals[:, :, 1]),
                               axis=2)), axis=3)
-    hencky = 0.5 * (vects @ vals @ np.linalg.inv(vects))
+    hencky = 0.5 * (vects @ vals @ np.linalg.inv(vects)).astype(np.float64)
 
     return hencky[:, :, 0, 0], hencky[:, :, 1, 1], hencky[:, :, 0, 1]
