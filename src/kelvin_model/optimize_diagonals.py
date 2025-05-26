@@ -14,7 +14,7 @@ from multiprocessing import RLock
 
 from .compute_stress import compute_stress
 from .kelvin_utils import (prepare_data, diagonals_interpolator, calc_density,
-                           stress_diag_to_force)
+                           stress_diag_to_force, save_results)
 
 
 def error_diags_one_image(lib_path: Path,
@@ -625,7 +625,7 @@ def optimize_diagonals(lib_path: Path,
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
             displayed.
-        dest_file: Path to a .npy file where to store the output of the
+        dest_file: Path to a .csv file where to store the output of the
             optimization.
         index: Index of the processed image in case only one image is being
             processed, otherwise leave to default.
@@ -697,43 +697,11 @@ def optimize_diagonals(lib_path: Path,
                                 'thickness': thickness,
                                 'efforts_x': efforts_x})
 
-    # The labels of all the value to save for making the model
-    labels = ("idx", "val1", "val2", "val3", "val4", "val5", "density_min",
-              "lambda_h", "lambda_11", "lambda_21", "lambda_51", "lambda_12",
-              "lambda_22", "lambda_52", "lambda_13", "lambda_23", "lambda_53",
-              "lambda_14", "lambda_24", "lambda_54", "lambda_15", "lambda_25",
-              "lambda_55")
-
-    # If no lock was given just create a useless one
-    if lock is None:
-        lock = RLock()
-
-    # Protect writing to results file with lock
-    with lock:
-
-        # Load previous results if they already exist at the indicated location
-        if dest_file.exists() and dest_file.is_file():
-            results = pd.read_csv(dest_file)
-        else:
-            results = pd.DataFrame(columns=labels)
-
-        # Store the various order coefficients
-        new_vals = pd.Series()
-        new_vals[labels[0]] = index
-
-        for label, val in zip(labels[1:6], order_coeffs.tolist(), strict=True):
-            new_vals[label] = val
-
-        # Store all the other values for the material coefficients
-        extra = iter(extra_vals.tolist())
-        fitted = iter(fit.x.tolist())
-        for label, flag in zip(labels[6:], to_fit.tolist(), strict=True):
-            if flag:
-                new_vals[label] = next(fitted)
-            else:
-                new_vals[label] = next(extra)
-
-        # Fuse the new results with the existing ones and save to a csv file
-        results = pd.concat((results, new_vals.to_frame().transpose()),
-                            ignore_index=True)
-        results.to_csv(dest_file, columns=labels, index=False)
+    # Save the results to a csv file
+    save_results(fit.x,
+                 dest_file,
+                 order_coeffs,
+                 to_fit,
+                 extra_vals,
+                 index,
+                 lock)

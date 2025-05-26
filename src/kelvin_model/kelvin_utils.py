@@ -3,6 +3,10 @@
 import numpy as np
 from collections.abc import Sequence
 from scipy.interpolate import RegularGridInterpolator
+from multiprocessing import RLock
+from multiprocessing.synchronize import RLock as RLockType
+import pandas as pd
+from pathlib import Path
 
 from .image_correlation import image_correlation
 
@@ -278,3 +282,71 @@ def stress_diag_to_force(sxx: np.ndarray,
     sum_diags /= downscale_factor_h
 
     return sum_diags[:, 0], sum_diags[:, 1]
+
+
+def save_results(fit_vals: np.ndarray,
+                 dest_file: Path,
+                 order_coeffs: np.ndarray,
+                 to_fit: np.ndarray,
+                 extra_vals: np.ndarray,
+                 index: int,
+                 lock: RLockType | None) -> None:
+    """Writes the optimized parameter values to the indicated destination file.
+
+    Args:
+        fit_vals: Array containing the optimized parameter values from the
+            least-squares fit.
+        dest_file: Path to a .csv file where to store the output of the
+            optimization.
+        order_coeffs:
+        to_fit: Array of flags indicating for each parameter of the model
+            whether it was considered during optimization or if its value was
+            fixed.
+        extra_vals: Array containing the values of the parameters that were
+            fixed during optimization.
+        index: Index of the processed image in case only one image is being
+            processed, otherwise leave to default.
+        lock: A lock to avoid concurrency between processes when writing in the
+            results file.
+    """
+
+    # The labels of all the value to save for making the model
+    labels = ("idx", "val1", "val2", "val3", "val4", "val5", "density_min",
+              "lambda_h", "lambda_11", "lambda_21", "lambda_51", "lambda_12",
+              "lambda_22", "lambda_52", "lambda_13", "lambda_23", "lambda_53",
+              "lambda_14", "lambda_24", "lambda_54", "lambda_15", "lambda_25",
+              "lambda_55")
+
+    # If no lock was given just create a useless one
+    if lock is None:
+        lock = RLock()
+
+    # Protect writing to results file with lock
+    with lock:
+
+        # Load previous results if they already exist at the indicated location
+        if dest_file.exists() and dest_file.is_file():
+            results = pd.read_csv(dest_file)
+        else:
+            results = pd.DataFrame(columns=labels)
+
+        # Store the various order coefficients
+        new_vals = pd.Series()
+        new_vals[labels[0]] = index
+
+        for label, val in zip(labels[1:6], order_coeffs.tolist(), strict=True):
+            new_vals[label] = val
+
+        # Store all the other values for the material coefficients
+        extra = iter(extra_vals.tolist())
+        fitted = iter(fit_vals.tolist())
+        for label, flag in zip(labels[6:], to_fit.tolist(), strict=True):
+            if flag:
+                new_vals[label] = next(fitted)
+            else:
+                new_vals[label] = next(extra)
+
+        # Fuse the new results with the existing ones and save to a csv file
+        results = pd.concat((results, new_vals.to_frame().transpose()),
+                            ignore_index=True)
+        results.to_csv(dest_file, columns=labels, index=False)
