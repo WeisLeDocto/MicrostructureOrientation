@@ -84,7 +84,7 @@ if __name__ == "__main__":
     nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
     verbose = False
-    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results.csv")
+    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results/results.csv")
     
     for img, f_x, index in tqdm(zip(def_images, efforts_x, indexes),
                                 total=len(def_images),
@@ -94,12 +94,12 @@ if __name__ == "__main__":
                                 position=0,
                                 leave=False):
         optimize_diagonals(lib_path,
-                           ref_img,
-                           density_base,
-                           gauss_fit,
-                           peaks,
-                           x0,
-                           (img,),
+                           ref_img.astype(np.float64),
+                           density_base.astype(np.float64),
+                           gauss_fit.astype(np.float64),
+                           peaks.astype(np.float64),
+                           x0.astype(np.float64),
+                           (img.astype(np.float64),),
                            (f_x,),
                            order_coeffs,
                            scale,
