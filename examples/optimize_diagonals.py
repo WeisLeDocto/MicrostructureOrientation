@@ -113,12 +113,12 @@ if __name__ == "__main__":
     
     nb_tot = len(def_images)
     pool_args = zip(itertools.repeat(lib_path, nb_tot),
-                    itertools.repeat(ref_img, nb_tot),
-                    itertools.repeat(density_base, nb_tot),
-                    itertools.repeat(gauss_fit, nb_tot),
-                    itertools.repeat(peaks, nb_tot),
-                    itertools.repeat(x0, nb_tot),
-                    tuple((img,) for img in def_images),
+                    itertools.repeat(ref_img.astype(np.float64), nb_tot),
+                    itertools.repeat(density_base.astype(np.float64), nb_tot),
+                    itertools.repeat(gauss_fit.astype(np.float64), nb_tot),
+                    itertools.repeat(peaks.astype(np.float64), nb_tot),
+                    itertools.repeat(x0.astype(np.float64), nb_tot),
+                    tuple((img.astype(np.float64),) for img in def_images),
                     tuple((f_x,) for f_x in efforts_x),
                     itertools.repeat(order_coeffs, nb_tot),
                     itertools.repeat(scale, nb_tot),

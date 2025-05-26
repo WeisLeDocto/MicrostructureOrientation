@@ -42,7 +42,8 @@ if __name__ == '__main__':
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/11_3662.npy"),
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/12_3840.npy"),
                         Path("/home/weis/Desktop/HDR/7LX1_2/hdr/13_4018.npy"))
-    def_images = tuple(np.load(img) for img in def_images_paths)
+    def_images = tuple(np.load(img).astype(np.float64)
+                       for img in def_images_paths)
 
     # Effort measured during the test
     efforts_file = Path("/home/weis/Desktop/HDR/7LX1_2/effort_2.csv")
@@ -71,10 +72,10 @@ if __name__ == '__main__':
     dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results_comp.csv")
 
     compare_results_expe(lib_path,
-                         ref_img,
-                         density_base,
-                         gauss_fit,
-                         peaks,
+                         ref_img.astype(np.float64),
+                         density_base.astype(np.float64),
+                         gauss_fit.astype(np.float64),
+                         peaks.astype(np.float64),
                          results_file,
                          def_images,
                          times,
