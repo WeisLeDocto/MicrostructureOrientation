@@ -83,7 +83,7 @@ if __name__ == "__main__":
     nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
     verbose = False
-    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results_multi.csv")
+    dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results/results_multi.csv")
 
     # Optimize an all the images at once
     optimize_diagonals(lib_path,
