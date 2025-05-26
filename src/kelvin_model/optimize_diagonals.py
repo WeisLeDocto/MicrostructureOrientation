@@ -2,7 +2,6 @@
 
 from collections.abc import Sequence
 import numpy as np
-import pandas as pd
 from scipy.optimize import least_squares, Bounds
 from pathlib import Path
 from tqdm.auto import tqdm
@@ -10,7 +9,6 @@ import sys
 import concurrent.futures
 import itertools
 from multiprocessing.synchronize import RLock as RLockType
-from multiprocessing import RLock
 
 from .compute_stress import compute_stress
 from .kelvin_utils import (prepare_data, diagonals_interpolator, calc_density,
