@@ -4,11 +4,13 @@ from pathlib import Path
 import numpy as np
 from collections.abc import Sequence
 from scipy.optimize import Bounds, least_squares
+from scipy.interpolate import RegularGridInterpolator
 from scipy.ndimage import sobel
 from tqdm.auto import tqdm
 import sys
 
-from .kelvin_utils import prepare_data, calc_density, save_results
+from .kelvin_utils import (prepare_data, calc_density, save_results,
+                           stress_diag_to_force)
 from .compute_stress import compute_stress
 from .optimize_diagonals import error_diagonals
 
@@ -44,8 +46,14 @@ def error_div_one_image(lib_path: Path,
                         sigma_1: np.ndarray,
                         sigma_2: np.ndarray,
                         sigma_3: np.ndarray,
-                        density: np.ndarray
-                        ) -> float:
+                        density: np.ndarray,
+                        interp_pts: np.ndarray,
+                        normals: np.ndarray,
+                        cosines: np.ndarray,
+                        effort_x: float,
+                        scale: float,
+                        thickness: float,
+                        ) -> tuple[float, float]:
     """Computes the stress over the entire image, computes the divergence of
     the stress, and returns the norm of this divergence.
 
@@ -142,22 +150,47 @@ def error_div_one_image(lib_path: Path,
                                    sigma_3,
                                    density)
 
+    # Build the divergence tensor
     stress = np.stack((np.stack((sxx, sxy), axis=2),
                        np.stack((sxy, syy), axis=2)), axis=3)
-
     dxx_dx = sobel(stress[:, :, 0, 0], 1)
     dxy_dx = sobel(stress[:, :, 0, 1], 1)
     dxy_dy = sobel(stress[:, :, 1, 0], 0)
     dyy_dy = sobel(stress[:, :, 1, 1], 0)
     div = np.stack((dxx_dx + dxy_dy, dxy_dx + dyy_dy), axis=2)
 
+    # Compute the norm of the divergence
     error_div = np.sum(np.sqrt(np.sum(np.power(div, 2), axis=-1)), axis=None)
     error_div /= np.sum(np.sqrt(np.sum(np.power(stress, 2), axis=-1)),
                         axis=None)
     error_div /= exx.shape[0] * exx.shape[1]
+    # Increase error to match scale of force
+    error_div *= 1.0e4
 
-    # Increase error for better readability
-    return 1.0e6 * error_div
+    # Interpolate the stress fields over the provided interpolation points
+    sxx_int = RegularGridInterpolator((np.arange(sxx.shape[0]),
+                                       np.arange(sxx.shape[1])), sxx)
+    syy_int = RegularGridInterpolator((np.arange(syy.shape[0]),
+                                       np.arange(syy.shape[1])), syy)
+    sxy_int = RegularGridInterpolator((np.arange(sxy.shape[0]),
+                                       np.arange(sxy.shape[1])), sxy)
+    sxx_diags = sxx_int(interp_pts)
+    syy_diags = syy_int(interp_pts)
+    sxy_diags = sxy_int(interp_pts)
+
+    # Integrate the stress to get the force over the provided sections
+    comp_force_x, _ = stress_diag_to_force(sxx_diags,
+                                           syy_diags,
+                                           sxy_diags,
+                                           density.shape[0],
+                                           interp_pts.shape[1],
+                                           normals,
+                                           cosines,
+                                           scale,
+                                           thickness)
+    error_force = abs(float(np.median(comp_force_x)) - effort_x)
+
+    return error_div, error_force
 
 
 def error_divergence(lib_path: Path,
@@ -192,7 +225,11 @@ def error_divergence(lib_path: Path,
                      sigma_1: np.ndarray,
                      sigma_2: np.ndarray,
                      sigma_3: np.ndarray,
-                     density: np.ndarray
+                     density: np.ndarray,
+                     interp_pts: np.ndarray,
+                     efforts_x: Sequence[float],
+                     scale: float,
+                     thickness: float,
                      ) -> float:
     """Computes for each image the norm of the divergence of the stress for the
     given set of material parameters, and returns the sum of the errors for all
@@ -250,46 +287,18 @@ def error_divergence(lib_path: Path,
         The total error as a float, for all the images together.
     """
 
+    # Not really needed as the sections are straight and vertical, but defined
+    # for compatibility
+    normals = np.zeros_like(interp_pts)
+    normals[..., 0] = 1.0
+    cosines = np.full_like(interp_pts, 1.0)
+    normals = normals[..., np.newaxis]
+
     nb_tot = len(exxs)
-    if nb_tot == 1:
-        error = error_div_one_image(lib_path,
-                                    exxs[0],
-                                    eyys[0],
-                                    exys[0],
-                                    lambda_h,
-                                    lambda_11,
-                                    lambda_21,
-                                    lambda_51,
-                                    lambda_12,
-                                    lambda_22,
-                                    lambda_52,
-                                    lambda_13,
-                                    lambda_23,
-                                    lambda_53,
-                                    lambda_14,
-                                    lambda_24,
-                                    lambda_54,
-                                    lambda_15,
-                                    lambda_25,
-                                    lambda_55,
-                                    val1,
-                                    val2,
-                                    val3,
-                                    val4,
-                                    val5,
-                                    theta_1,
-                                    theta_2,
-                                    theta_3,
-                                    sigma_1,
-                                    sigma_2,
-                                    sigma_3,
-                                    density)
-        if verbose:
-            print("\n", error, "\n")
-        return error
 
     # Iterate over all the images and get each individual error
-    error_tot = 0.0
+    error_div_tot = 0.0
+    error_force_tot = 0.0
     for exx, eyy, exy in tqdm(zip(exxs, eyys, exys),
                               total=nb_tot,
                               desc='Compute the stress for all the images',
@@ -297,55 +306,65 @@ def error_divergence(lib_path: Path,
                               colour='green',
                               position=1,
                               leave=False):
-        error_tot += error_div_one_image(lib_path,
-                                         exx,
-                                         eyy,
-                                         exy,
-                                         lambda_h,
-                                         lambda_11,
-                                         lambda_21,
-                                         lambda_51,
-                                         lambda_12,
-                                         lambda_22,
-                                         lambda_52,
-                                         lambda_13,
-                                         lambda_23,
-                                         lambda_53,
-                                         lambda_14,
-                                         lambda_24,
-                                         lambda_54,
-                                         lambda_15,
-                                         lambda_25,
-                                         lambda_55,
-                                         val1,
-                                         val2,
-                                         val3,
-                                         val4,
-                                         val5,
-                                         theta_1,
-                                         theta_2,
-                                         theta_3,
-                                         sigma_1,
-                                         sigma_2,
-                                         sigma_3,
-                                         density)
-    error_tot /= nb_tot
+        error_div, error_force = error_div_one_image(lib_path,
+                                                     exx,
+                                                     eyy,
+                                                     exy,
+                                                     lambda_h,
+                                                     lambda_11,
+                                                     lambda_21,
+                                                     lambda_51,
+                                                     lambda_12,
+                                                     lambda_22,
+                                                     lambda_52,
+                                                     lambda_13,
+                                                     lambda_23,
+                                                     lambda_53,
+                                                     lambda_14,
+                                                     lambda_24,
+                                                     lambda_54,
+                                                     lambda_15,
+                                                     lambda_25,
+                                                     lambda_55,
+                                                     val1,
+                                                     val2,
+                                                     val3,
+                                                     val4,
+                                                     val5,
+                                                     theta_1,
+                                                     theta_2,
+                                                     theta_3,
+                                                     sigma_1,
+                                                     sigma_2,
+                                                     sigma_3,
+                                                     density,
+                                                     interp_pts,
+                                                     normals,
+                                                     cosines,
+                                                     efforts_x[0],
+                                                     scale,
+                                                     thickness)
+        error_div_tot += error_div
+        error_force_tot += error_force
 
-    # Print the total error if requested
+    # Normalize by the total number of images
+    error_div_tot /= nb_tot
+    error_force_tot /= nb_tot
+
+    # Print the errors if requested
     if verbose:
-        print("\n", error_tot, "\n")
-    return error_tot
+        print("\n",
+              error_div_tot, "\n",
+              error_force_tot, "\n",
+              error_div_tot + error_force_tot, "\n")
+
+    return error_div_tot + error_force_tot
 
 
 def _least_square_wrapper(x: np.ndarray,
                           to_fit: np.ndarray,
                           extra_vals: np.ndarray,
                           verbose: bool,
-                          val1: float,
-                          val2: float,
-                          val3: float,
-                          val4: float,
-                          val5: float,
                           exxs: Sequence[np.ndarray],
                           eyys: Sequence[np.ndarray],
                           exys: Sequence[np.ndarray],
@@ -405,14 +424,22 @@ def _least_square_wrapper(x: np.ndarray,
 
     # Initialize the objects containing the material parameters
     lambdas = np.empty(16, dtype=np.float64)
+    vals = np.empty(5, dtype=np.float64)
     x = iter(x)
     extra_vals = iter(extra_vals)
 
     # The first value is always the minimum material density
     dens_min = next(x)
 
+    # Extract the values of the multiplicative coefficients
+    for i, flag in enumerate(to_fit[1:6].tolist()):
+        if flag:
+            vals[i] = next(x)
+        else:
+            vals[i] = next(extra_vals)
+
     # Retrieve all the material parameters from the correct iterables
-    for i, flag in enumerate(to_fit[1:].tolist()):
+    for i, flag in enumerate(to_fit[6:].tolist()):
         if flag:
             lambdas[i] = next(x)
         else:
@@ -425,9 +452,13 @@ def _least_square_wrapper(x: np.ndarray,
      lambda_14, lambda_24, lambda_54,
      lambda_15, lambda_25, lambda_55) = lambdas
 
+    val1, val2, val3, val4, val5 = vals
+
     # If requested, print the values of the material parameters
     if verbose:
-        print(dens_min, lambda_h,
+        print(dens_min,
+              val1, val2, val3, val4, val5,
+              lambda_h,
               lambda_11, lambda_21, lambda_51,
               lambda_12, lambda_22, lambda_52,
               lambda_13, lambda_23, lambda_53,
@@ -469,7 +500,11 @@ def _least_square_wrapper(x: np.ndarray,
                             sigma_1,
                             sigma_2,
                             sigma_3,
-                            density)
+                            density,
+                            interp_pts,
+                            efforts_x,
+                            scale,
+                            thickness)
 
 
 def _least_square_wrapper_mult(x: np.ndarray,
@@ -677,11 +712,19 @@ def optimize_divergence(lib_path: Path,
                                                    None,
                                                    None)
 
-    # Define the bounds for all the parameters
-    nb_max = 17
+    # Define perpendicular sections
+    interp_pts = np.stack(np.meshgrid(np.arange(ref_img.shape[0]),
+                                      np.arange(ref_img.shape[1])), axis=2)
+    interp_pts = interp_pts[::cross_section_downscaling]
+
+    x0 = np.concatenate((x0[0:1], order_coeffs, x0[1:]))
+
+    # Define the bounds for all the parameters, including the multiplicative
+    # factors
+    nb_max = 22
     low_bounds = np.array((1.0e-5,) * nb_max)
     low_bounds[0] = 0.0
-    low_bounds[1] = 1.0
+    low_bounds[6] = 1.0
     high_bounds = np.array((np.inf,) * nb_max)
     high_bounds[0] = 0.99
 
@@ -689,14 +732,15 @@ def optimize_divergence(lib_path: Path,
     # of the factors for each order
     to_fit = np.full(nb_max, True, dtype=np.bool_)
     for idx in np.where(order_coeffs == 0.0)[0].tolist():
-        to_fit[2 + 3 * idx: 2 + 3 * (idx + 1)] = False
+        to_fit[idx + 1] = False
+        to_fit[7 + 3 * idx: 7 + 3 * (idx + 1)] = False
     low_bounds = low_bounds[to_fit]
     high_bounds = high_bounds[to_fit]
     extra_vals = x0[~to_fit]
     x0 = x0[to_fit]
     bounds = Bounds(lb=low_bounds, ub=high_bounds)
     x_scale = np.ones(nb_max, dtype=np.float64)
-    x_scale[5:] = 10.0
+    x_scale[10:] = 10.0
     x_scale = x_scale[to_fit]
 
     # Perform the optimization
@@ -707,11 +751,6 @@ def optimize_divergence(lib_path: Path,
                         kwargs={'to_fit': to_fit,
                                 'extra_vals': extra_vals,
                                 'verbose': verbose,
-                                'val1': order_coeffs[0],
-                                'val2': order_coeffs[1],
-                                'val3': order_coeffs[2],
-                                'val4': order_coeffs[3],
-                                'val5': order_coeffs[4],
                                 'exxs': exxs,
                                 'eyys': eyys,
                                 'exys': exys,
@@ -722,12 +761,11 @@ def optimize_divergence(lib_path: Path,
                                 'sigma_2': sigma_2,
                                 'sigma_3': sigma_3,
                                 'density_base': density_base,
-                                'lib_path': lib_path})
-
-    # Define perpendicular sections
-    interp_pts = np.stack(np.meshgrid(np.arange(ref_img.shape[0]),
-                                      np.arange(ref_img.shape[1])), axis=2)
-    interp_pts = interp_pts[::cross_section_downscaling]
+                                'lib_path': lib_path,
+                                'interp_pts': interp_pts,
+                                'efforts_x': efforts_x,
+                                'scale': scale,
+                                'thickness': thickness})
 
     # Regroup the fitter values with the fixed ones
     fit_rec = np.empty_like(to_fit, dtype=np.float64)
@@ -739,53 +777,11 @@ def optimize_divergence(lib_path: Path,
         else:
             fit_rec[i] = next(extra)
 
-    # Perform optimization to adjust the multiplicative coefficient
-    fit_mult = least_squares(_least_square_wrapper_mult,
-                             (1.0,),
-                             bounds=Bounds(lb=0.0, ub=np.inf),
-                             kwargs={'verbose': verbose,
-                                     'val1': order_coeffs[0],
-                                     'val2': order_coeffs[1],
-                                     'val3': order_coeffs[2],
-                                     'val4': order_coeffs[3],
-                                     'val5': order_coeffs[4],
-                                     'exxs': exxs,
-                                     'eyys': eyys,
-                                     'exys': exys,
-                                     'theta_1': theta_1,
-                                     'theta_2': theta_2,
-                                     'theta_3': theta_3,
-                                     'sigma_1': sigma_1,
-                                     'sigma_2': sigma_2,
-                                     'sigma_3': sigma_3,
-                                     'density_base': density_base,
-                                     'min_density': fit_rec[0],
-                                     'lambda_h': fit_rec[1],
-                                     'lambda_11': fit_rec[2],
-                                     'lambda_21': fit_rec[3],
-                                     'lambda_51': fit_rec[4],
-                                     'lambda_12': fit_rec[5],
-                                     'lambda_22': fit_rec[6],
-                                     'lambda_52': fit_rec[7],
-                                     'lambda_13': fit_rec[8],
-                                     'lambda_23': fit_rec[9],
-                                     'lambda_53': fit_rec[10],
-                                     'lambda_14': fit_rec[11],
-                                     'lambda_24': fit_rec[12],
-                                     'lambda_54': fit_rec[13],
-                                     'lambda_15': fit_rec[14],
-                                     'lambda_25': fit_rec[15],
-                                     'lambda_55': fit_rec[16],
-                                     'lib_path': lib_path,
-                                     'interp_pts': interp_pts,
-                                     'scale': scale,
-                                     'thickness': thickness,
-                                     'efforts_x': efforts_x})
-
     # Save the results to a .csv file
-    save_results(fit_rec,
+    res = np.concatenate((fit_rec[0:1], fit_rec[6:]))
+    save_results(res,
                  dest_file,
-                 order_coeffs * fit_mult.x[0],
-                 to_fit,
-                 extra_vals,
+                 fit_rec[1:6],
+                 np.full_like(res, True, dtype=np.bool),
+                 np.zeros_like(res),
                  index)
