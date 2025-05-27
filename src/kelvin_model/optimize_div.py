@@ -176,7 +176,7 @@ def error_div_one_image(lib_path: Path,
                         axis=None)
     error_div /= exx.shape[0] * exx.shape[1]
     # Increase error to match scale of force
-    error_div *= 1.0e4
+    error_div *= 1.0e6
 
     # Interpolate the stress fields over the provided interpolation points
     sxx_int = RegularGridInterpolator((np.arange(sxx.shape[0]),
