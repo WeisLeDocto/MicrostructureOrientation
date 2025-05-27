@@ -186,28 +186,6 @@ def error_diags_one_image(lib_path: Path,
     return abs(float(np.median(comp_force_x)) - effort_x)
 
 
-def _process_pool_wrapper(args: tuple[Path, np.ndarray, np.ndarray, np.ndarray, 
-                                      float, float, float, float, float, float, 
-                                      float, float, float, float, float, float, 
-                                      float, float, float, float, float, float, 
-                                      float, float, float, np.ndarray, 
-                                      np.ndarray, np.ndarray, np.ndarray, 
-                                      np.ndarray, np.ndarray, np.ndarray, 
-                                      np.ndarray, np.ndarray, np.ndarray, 
-                                      float, float, float]) -> float:
-    """Wrapper for passing the arguments separately to the worker, for better
-    clarity.
-
-    Args:
-        args: The arguments to pass to the worker, as a single tuple.
-
-    Returns:
-        The computed error as a float.
-    """
-
-    return error_diags_one_image(*args)
-
-
 def error_diagonals(lib_path: Path,
                     verbose: bool,
                     exxs: Sequence[np.ndarray],
@@ -315,45 +293,6 @@ def error_diagonals(lib_path: Path,
     """
 
     nb_tot = len(exxs)
-    if nb_tot == 1:
-        return error_diags_one_image(lib_path,
-                                     exxs[0],
-                                     eyys[0],
-                                     exys[0],
-                                     lambda_h,
-                                     lambda_11,
-                                     lambda_21,
-                                     lambda_51,
-                                     lambda_12,
-                                     lambda_22,
-                                     lambda_52,
-                                     lambda_13,
-                                     lambda_23,
-                                     lambda_53,
-                                     lambda_14,
-                                     lambda_24,
-                                     lambda_54,
-                                     lambda_15,
-                                     lambda_25,
-                                     lambda_55,
-                                     val1,
-                                     val2,
-                                     val3,
-                                     val4,
-                                     val5,
-                                     theta_1,
-                                     theta_2,
-                                     theta_3,
-                                     sigma_1,
-                                     sigma_2,
-                                     sigma_3,
-                                     density,
-                                     interp_pts,
-                                     normals,
-                                     cosines,
-                                     scale,
-                                     thickness,
-                                     efforts_x[0])
 
     # Iterate over all the images and get each individual error
     error_tot = 0.0
