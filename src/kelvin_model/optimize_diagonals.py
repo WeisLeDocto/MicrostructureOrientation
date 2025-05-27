@@ -252,7 +252,7 @@ def error_diagonals(lib_path: Path,
     the errors for all images.
 
     Args:
-        lib_path:  Path to the .so file containing the shared library for
+        lib_path: Path to the .so file containing the shared library for
             computing the stress.
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
@@ -476,7 +476,7 @@ def _least_square_wrapper(x: np.ndarray,
             deviation of the third tissue layer.
         density_base: The base image from which to compute the density,
             normally one the raw images acquired for exposure fusion.
-        lib_path:  Path to the .so file containing the shared library for
+        lib_path: Path to the .so file containing the shared library for
             computing the stress.
         interp_pts: A numpy array containing all the points over which to
             compute the stress for calculating the final error.
@@ -590,7 +590,7 @@ def optimize_diagonals(lib_path: Path,
     computed one over all the images on the diagonals.
 
     Args:
-        lib_path:  Path to the .so file containing the shared library for
+        lib_path: Path to the .so file containing the shared library for
             computing the stress.
         ref_img: The reference image for correlation.
         density_base: The base image from which to compute the density,
