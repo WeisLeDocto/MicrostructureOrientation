@@ -55,7 +55,8 @@ def error_div_one_image(lib_path: Path,
                         thickness: float,
                         ) -> tuple[float, float]:
     """Computes the stress over the entire image, computes the divergence of
-    the stress, and returns the norm of this divergence.
+    the stress and estimates the force in the x axis, then returns the norm of
+    the divergence and the error in the computed force.
 
     Args:
         lib_path: Path to the .so file containing the shared library for
@@ -98,10 +99,20 @@ def error_div_one_image(lib_path: Path,
             deviation of the third tissue layer.
         density: Numpy array containing for all pixels the local density of the
             tissue.
+        interp_pts: A numpy array containing all the points over which to
+            compute the stress for calculating the final error.
+        normals: A numpy array containing for each interpolation point the
+            normalized coordinates of its normal along the interpolation line.
+        cosines: A numpy array containing for each interpolation point the
+            scaling factor to use for correcting the inclination of the
+            interpolation line.
+        effort_x: The measured effort in x during the test.
+        scale: The mm/pixel ratio of the image, as a float.
+        thickness: The thickness of the sample in mm, as a float.
 
     Returns:
         The norm of the divergence over the entire image, normalized by various
-        factors.
+        factors, and the error in the computed force.
     """
 
     # Ensure there is no nan value in the data
@@ -282,6 +293,12 @@ def error_divergence(lib_path: Path,
             deviation of the third tissue layer.
         density: Numpy array containing for all pixels the local density of the
             tissue.
+        interp_pts: A numpy array containing all the points over which to
+            compute the stress for calculating the final error.
+        efforts_x: Sequence of floats representing the measured force in the x
+            direction, one for each image.
+        scale: The mm/pixel ratio of the image, as a float.
+        thickness: The thickness of the sample in mm, as a float.
 
     Returns:
         The total error as a float, for all the images together.
@@ -375,7 +392,11 @@ def _least_square_wrapper(x: np.ndarray,
                           sigma_2: np.ndarray,
                           sigma_3: np.ndarray,
                           density_base: np.ndarray,
-                          lib_path: Path
+                          lib_path: Path,
+                          interp_pts: np.ndarray,
+                          efforts_x: Sequence[float],
+                          scale: float,
+                          thickness: float,
                           ) -> float:
     """Parses the arguments from the optimization function, to pass them to the
     function computing the error.
@@ -390,11 +411,6 @@ def _least_square_wrapper(x: np.ndarray,
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
             displayed.
-        val1: Multiplicative factor for the first-order term.
-        val2: Multiplicative factor for the second-order term.
-        val3: Multiplicative factor for the third-order term.
-        val4: Multiplicative factor for the fourth-order term.
-        val5: Multiplicative factor for the fifth-order term.
         exxs: Sequence of numpy array containing for all pixels the xx strain,
             one for each image.
         eyys: Sequence of numpy array containing for all pixels the yy strain,
@@ -416,7 +432,13 @@ def _least_square_wrapper(x: np.ndarray,
         density_base: The base image from which to compute the density,
             normally one the raw images acquired for exposure fusion.
         lib_path:  Path to the .so file containing the shared library for
-          computing the stress.
+            computing the stress.
+        interp_pts: A numpy array containing all the points over which to
+            compute the stress for calculating the final error.
+        efforts_x: Sequence of floats representing the measured force in the x
+            direction, one for each image.
+        scale: The mm/pixel ratio of the image, as a float.
+        thickness: The thickness of the sample in mm, as a float.
 
     Returns:
         The total error as a float, for all the images together.
@@ -669,8 +691,9 @@ def optimize_divergence(lib_path: Path,
                         cross_section_downscaling: int,
                         index: int = 0) -> None:
     """Takes a set of images as an input, and finds the best set of material
-    parameters that minimizes the norm of the divergence over the entire
-    images. Then, adjusts the material parameters so that
+    parameters that minimizes both the norm of the divergence over the entire
+    images, and the difference between the computed force and the measured one
+    in the x direction.
 
     Args:
         lib_path:  Path to the .so file containing the shared library for
