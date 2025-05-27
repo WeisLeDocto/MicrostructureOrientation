@@ -316,13 +316,14 @@ def error_divergence(lib_path: Path,
     # Iterate over all the images and get each individual error
     error_div_tot = 0.0
     error_force_tot = 0.0
-    for exx, eyy, exy in tqdm(zip(exxs, eyys, exys),
-                              total=nb_tot,
-                              desc='Compute the stress for all the images',
-                              file=sys.stdout,
-                              colour='green',
-                              position=1,
-                              leave=False):
+    for exx, eyy, exy, effort_x in tqdm(zip(exxs, eyys, exys, efforts_x),
+                                        total=nb_tot,
+                                        desc='Compute the stress for all the '
+                                             'images',
+                                        file=sys.stdout,
+                                        colour='green',
+                                        position=1,
+                                        leave=False):
         error_div, error_force = error_div_one_image(lib_path,
                                                      exx,
                                                      eyy,
@@ -358,7 +359,7 @@ def error_divergence(lib_path: Path,
                                                      interp_pts,
                                                      normals,
                                                      cosines,
-                                                     efforts_x[0],
+                                                     effort_x,
                                                      scale,
                                                      thickness)
         error_div_tot += error_div
