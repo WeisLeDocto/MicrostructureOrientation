@@ -791,7 +791,6 @@ def optimize_divergence(lib_path: Path,
                                 'thickness': thickness})
 
     # Save the results to a .csv file
-    res = np.concatenate((fit_rec[0:1], fit_rec[6:]))
     save_results(fit.x,
                  dest_file,
                  order_coeffs,
