@@ -383,6 +383,11 @@ def _least_square_wrapper(x: np.ndarray,
                           to_fit: np.ndarray,
                           extra_vals: np.ndarray,
                           verbose: bool,
+                          val1: float,
+                          val2: float,
+                          val3: float,
+                          val4: float,
+                          val5: float,
                           exxs: Sequence[np.ndarray],
                           eyys: Sequence[np.ndarray],
                           exys: Sequence[np.ndarray],
@@ -412,6 +417,11 @@ def _least_square_wrapper(x: np.ndarray,
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
             displayed.
+        val1: Multiplicative factor for the first-order term.
+        val2: Multiplicative factor for the second-order term.
+        val3: Multiplicative factor for the third-order term.
+        val4: Multiplicative factor for the fourth-order term.
+        val5: Multiplicative factor for the fifth-order term.
         exxs: Sequence of numpy array containing for all pixels the xx strain,
             one for each image.
         eyys: Sequence of numpy array containing for all pixels the yy strain,
@@ -447,22 +457,14 @@ def _least_square_wrapper(x: np.ndarray,
 
     # Initialize the objects containing the material parameters
     lambdas = np.empty(16, dtype=np.float64)
-    vals = np.empty(5, dtype=np.float64)
     x = iter(x)
     extra_vals = iter(extra_vals)
 
     # The first value is always the minimum material density
     dens_min = next(x)
 
-    # Extract the values of the multiplicative coefficients
-    for i, flag in enumerate(to_fit[1:6].tolist()):
-        if flag:
-            vals[i] = next(x)
-        else:
-            vals[i] = next(extra_vals)
-
     # Retrieve all the material parameters from the correct iterables
-    for i, flag in enumerate(to_fit[6:].tolist()):
+    for i, flag in enumerate(to_fit[1:].tolist()):
         if flag:
             lambdas[i] = next(x)
         else:
@@ -475,13 +477,9 @@ def _least_square_wrapper(x: np.ndarray,
      lambda_14, lambda_24, lambda_54,
      lambda_15, lambda_25, lambda_55) = lambdas
 
-    val1, val2, val3, val4, val5 = vals
-
     # If requested, print the values of the material parameters
     if verbose:
-        print(dens_min,
-              val1, val2, val3, val4, val5,
-              lambda_h,
+        print(dens_min, lambda_h,
               lambda_11, lambda_21, lambda_51,
               lambda_12, lambda_22, lambda_52,
               lambda_13, lambda_23, lambda_53,
@@ -741,14 +739,11 @@ def optimize_divergence(lib_path: Path,
                                       np.arange(ref_img.shape[1])), axis=2)
     interp_pts = interp_pts[::cross_section_downscaling]
 
-    x0 = np.concatenate((x0[0:1], order_coeffs, x0[1:]))
-
-    # Define the bounds for all the parameters, including the multiplicative
-    # factors
-    nb_max = 22
+    # Define the bounds for all the parameters
+    nb_max = 17
     low_bounds = np.array((1.0e-5,) * nb_max)
     low_bounds[0] = 0.0
-    low_bounds[6] = 1.0
+    low_bounds[1] = 1.0
     high_bounds = np.array((np.inf,) * nb_max)
     high_bounds[0] = 0.99
 
@@ -756,15 +751,14 @@ def optimize_divergence(lib_path: Path,
     # of the factors for each order
     to_fit = np.full(nb_max, True, dtype=np.bool_)
     for idx in np.where(order_coeffs == 0.0)[0].tolist():
-        to_fit[idx + 1] = False
-        to_fit[7 + 3 * idx: 7 + 3 * (idx + 1)] = False
+        to_fit[2 + 3 * idx: 2 + 3 * (idx + 1)] = False
     low_bounds = low_bounds[to_fit]
     high_bounds = high_bounds[to_fit]
     extra_vals = x0[~to_fit]
     x0 = x0[to_fit]
     bounds = Bounds(lb=low_bounds, ub=high_bounds)
     x_scale = np.ones(nb_max, dtype=np.float64)
-    x_scale[10:] = 10.0
+    x_scale[5:] = 10.0
     x_scale = x_scale[to_fit]
 
     # Perform the optimization
@@ -775,6 +769,11 @@ def optimize_divergence(lib_path: Path,
                         kwargs={'to_fit': to_fit,
                                 'extra_vals': extra_vals,
                                 'verbose': verbose,
+                                'val1': order_coeffs[0],
+                                'val2': order_coeffs[1],
+                                'val3': order_coeffs[2],
+                                'val4': order_coeffs[3],
+                                'val5': order_coeffs[4],
                                 'exxs': exxs,
                                 'eyys': eyys,
                                 'exys': exys,
@@ -791,21 +790,11 @@ def optimize_divergence(lib_path: Path,
                                 'scale': scale,
                                 'thickness': thickness})
 
-    # Regroup the fitter values with the fixed ones
-    fit_rec = np.empty_like(to_fit, dtype=np.float64)
-    extra = iter(extra_vals.tolist())
-    fitted = iter(fit.x.tolist())
-    for i, flag in enumerate(to_fit.tolist()):
-        if flag:
-            fit_rec[i] = next(fitted)
-        else:
-            fit_rec[i] = next(extra)
-
     # Save the results to a .csv file
     res = np.concatenate((fit_rec[0:1], fit_rec[6:]))
-    save_results(res,
+    save_results(fit.x,
                  dest_file,
-                 fit_rec[1:6],
-                 np.full_like(res, True, dtype=np.bool),
-                 np.zeros_like(res),
+                 order_coeffs,
+                 to_fit,
+                 extra_vals,
                  index)
