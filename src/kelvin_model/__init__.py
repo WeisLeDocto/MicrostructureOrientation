@@ -3,7 +3,7 @@
 from .compute_stress import compute_stress
 from .image_correlation import image_correlation
 from .optimize_diagonals import optimize_diagonals, error_diagonals
-from .optimize_div import optimize_divergence
+from .optimize_divergence import optimize_divergence
 from .results_vs_expe import compare_results_expe
 
 import importlib.util
