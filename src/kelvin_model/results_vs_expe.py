@@ -7,8 +7,8 @@ from collections.abc import Sequence
 from tqdm.auto import tqdm
 import sys
 
-from .kelvin_utils import (prepare_data, diagonals_interpolator, calc_density,
-                           stress_diag_to_force)
+from ._kelvin_utils import (prepare_data, diagonals_interpolator, calc_density,
+                            stress_diag_to_force)
 from .compute_stress import compute_stress
 
 

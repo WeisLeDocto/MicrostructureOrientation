@@ -5,9 +5,9 @@ import numpy as np
 from scipy.optimize import least_squares, Bounds
 from pathlib import Path
 
-from .kelvin_utils import prepare_data, calc_density, save_results
-from .optimize_diagonals import error_diagonals
-from .optimize_divergence import error_divergence
+from ._kelvin_utils import prepare_data, calc_density, save_results
+from ._optimize_diagonals import error_diagonals
+from ._optimize_divergence import error_divergence
 
 
 def _least_square_wrapper(x: np.ndarray,

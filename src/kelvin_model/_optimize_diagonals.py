@@ -1,59 +1,55 @@
 # coding: utf-8
 
-from pathlib import Path
-import numpy as np
 from collections.abc import Sequence
-from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import sobel
+import numpy as np
+from pathlib import Path
 from tqdm.auto import tqdm
 import sys
 
-from .kelvin_utils import stress_diag_to_force
 from .compute_stress import compute_stress
+from ._kelvin_utils import diagonals_interpolator, stress_diag_to_force
 
 
-def error_div_one_image(lib_path: Path,
-                        exx: np.ndarray,
-                        eyy: np.ndarray,
-                        exy: np.ndarray,
-                        lambda_h: float,
-                        lambda_11: float,
-                        lambda_21: float,
-                        lambda_51: float,
-                        lambda_12: float,
-                        lambda_22: float,
-                        lambda_52: float,
-                        lambda_13: float,
-                        lambda_23: float,
-                        lambda_53: float,
-                        lambda_14: float,
-                        lambda_24: float,
-                        lambda_54: float,
-                        lambda_15: float,
-                        lambda_25: float,
-                        lambda_55: float,
-                        val1: float,
-                        val2: float,
-                        val3: float,
-                        val4: float,
-                        val5: float,
-                        theta_1: np.ndarray,
-                        theta_2: np.ndarray,
-                        theta_3: np.ndarray,
-                        sigma_1: np.ndarray,
-                        sigma_2: np.ndarray,
-                        sigma_3: np.ndarray,
-                        density: np.ndarray,
-                        interp_pts: np.ndarray,
-                        normals: np.ndarray,
-                        cosines: np.ndarray,
-                        effort_x: float,
-                        scale: float,
-                        thickness: float,
-                        ) -> tuple[float, float]:
-    """Computes the stress over the entire image, computes the divergence of
-    the stress and estimates the force in the x axis, then returns the norm of
-    the divergence and the error in the computed force.
+def error_diags_one_image(lib_path: Path,
+                          exx: np.ndarray,
+                          eyy: np.ndarray,
+                          exy: np.ndarray,
+                          lambda_h: float,
+                          lambda_11: float,
+                          lambda_21: float,
+                          lambda_51: float,
+                          lambda_12: float,
+                          lambda_22: float,
+                          lambda_52: float,
+                          lambda_13: float,
+                          lambda_23: float,
+                          lambda_53: float,
+                          lambda_14: float,
+                          lambda_24: float,
+                          lambda_54: float,
+                          lambda_15: float,
+                          lambda_25: float,
+                          lambda_55: float,
+                          val1: float,
+                          val2: float,
+                          val3: float,
+                          val4: float,
+                          val5: float,
+                          theta_1: np.ndarray,
+                          theta_2: np.ndarray,
+                          theta_3: np.ndarray,
+                          sigma_1: np.ndarray,
+                          sigma_2: np.ndarray,
+                          sigma_3: np.ndarray,
+                          density: np.ndarray,
+                          interp_pts: np.ndarray,
+                          normals: np.ndarray,
+                          cosines: np.ndarray,
+                          scale: float,
+                          thickness: float,
+                          effort_x: float) -> float:
+    """Computes the stress only on the provided diagonals, and returns the
+    error in the computed x and y force.
 
     Args:
         lib_path: Path to the .so file containing the shared library for
@@ -103,15 +99,15 @@ def error_div_one_image(lib_path: Path,
         cosines: A numpy array containing for each interpolation point the
             scaling factor to use for correcting the inclination of the
             interpolation line.
-        effort_x: The measured effort in x during the test.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
+        effort_x: The measured effort in x during the test.
 
     Returns:
-        The norm of the divergence over the entire image, normalized by various
-        factors, and the error in the computed force.
+        The error in the computed force along the diagonals, normalized by
+        various factors.
     """
-
+    
     # Ensure there is no nan value in the data
     exx = np.nan_to_num(exx)
     eyy = np.nan_to_num(eyy)
@@ -123,12 +119,27 @@ def error_div_one_image(lib_path: Path,
     sigma_2 = np.nan_to_num(sigma_2)
     sigma_3 = np.nan_to_num(sigma_3)
     density = np.nan_to_num(density)
-
+    
+    # Interpolate the fields on the diagonals
+    (exx_diags, eyy_diags, exy_diags, theta_1_diags, theta_2_diags,
+     theta_3_diags, sigma_1_diags, sigma_2_diags, sigma_3_diags,
+     density_diags) = diagonals_interpolator(exx,
+                                             eyy,
+                                             exy,
+                                             interp_pts,
+                                             theta_1,
+                                             theta_2,
+                                             theta_3,
+                                             sigma_1,
+                                             sigma_2,
+                                             sigma_3,
+                                             density)
+    
     # Calculate the stress values
     sxx, syy, sxy = compute_stress(lib_path,
-                                   exx,
-                                   eyy,
-                                   exy,
+                                   exx_diags,
+                                   eyy_diags,
+                                   exy_diags,
                                    lambda_h,
                                    lambda_11,
                                    lambda_21,
@@ -150,100 +161,71 @@ def error_div_one_image(lib_path: Path,
                                    val3,
                                    val4,
                                    val5,
-                                   theta_1,
-                                   theta_2,
-                                   theta_3,
-                                   sigma_1,
-                                   sigma_2,
-                                   sigma_3,
-                                   density)
-
-    # Build the divergence tensor
-    stress = np.stack((np.stack((sxx, sxy), axis=2),
-                       np.stack((sxy, syy), axis=2)), axis=3)
-    dxx_dx = sobel(stress[:, :, 0, 0], 1)
-    dxy_dx = sobel(stress[:, :, 0, 1], 1)
-    dxy_dy = sobel(stress[:, :, 1, 0], 0)
-    dyy_dy = sobel(stress[:, :, 1, 1], 0)
-    div = np.stack((dxx_dx + dxy_dy, dxy_dx + dyy_dy), axis=2)
-
-    # Compute the norm of the divergence
-    error_div = np.sum(np.sqrt(np.sum(np.power(div, 2), axis=-1)), axis=None)
-    error_div /= np.sum(np.sqrt(np.sum(np.power(stress, 2), axis=-1)),
-                        axis=None)
-    error_div /= exx.shape[0] * exx.shape[1]
-    # Increase error to match scale of force
-    error_div *= 1.0e6
-
-    # Interpolate the stress fields over the provided interpolation points
-    sxx_int = RegularGridInterpolator((np.arange(sxx.shape[0]),
-                                       np.arange(sxx.shape[1])), sxx)
-    syy_int = RegularGridInterpolator((np.arange(syy.shape[0]),
-                                       np.arange(syy.shape[1])), syy)
-    sxy_int = RegularGridInterpolator((np.arange(sxy.shape[0]),
-                                       np.arange(sxy.shape[1])), sxy)
-    sxx_diags = sxx_int(interp_pts)
-    syy_diags = syy_int(interp_pts)
-    sxy_diags = sxy_int(interp_pts)
-
-    # Integrate the stress to get the force over the provided sections
-    comp_force_x, _ = stress_diag_to_force(sxx_diags,
-                                           syy_diags,
-                                           sxy_diags,
+                                   theta_1_diags,
+                                   theta_2_diags,
+                                   theta_3_diags,
+                                   sigma_1_diags,
+                                   sigma_2_diags,
+                                   sigma_3_diags,
+                                   density_diags)
+        
+    # Derive the force from the stress fields
+    comp_force_x, _ = stress_diag_to_force(sxx,
+                                           syy,
+                                           sxy,
                                            density.shape[0],
                                            interp_pts.shape[1],
                                            normals,
                                            cosines,
                                            scale,
                                            thickness)
-    error_force = abs(float(np.median(comp_force_x)) - effort_x)
-    error_force /= effort_x
+    
+    # Return the error as the difference between the computed and expect effort
+    return abs(float(np.median(comp_force_x)) - effort_x) / effort_x
 
-    return error_div, error_force
 
-
-def error_divergence(lib_path: Path,
-                     verbose: bool,
-                     exxs: Sequence[np.ndarray],
-                     eyys: Sequence[np.ndarray],
-                     exys: Sequence[np.ndarray],
-                     lambda_h: float,
-                     lambda_11: float,
-                     lambda_21: float,
-                     lambda_51: float,
-                     lambda_12: float,
-                     lambda_22: float,
-                     lambda_52: float,
-                     lambda_13: float,
-                     lambda_23: float,
-                     lambda_53: float,
-                     lambda_14: float,
-                     lambda_24: float,
-                     lambda_54: float,
-                     lambda_15: float,
-                     lambda_25: float,
-                     lambda_55: float,
-                     val1: float,
-                     val2: float,
-                     val3: float,
-                     val4: float,
-                     val5: float,
-                     theta_1: np.ndarray,
-                     theta_2: np.ndarray,
-                     theta_3: np.ndarray,
-                     sigma_1: np.ndarray,
-                     sigma_2: np.ndarray,
-                     sigma_3: np.ndarray,
-                     density: np.ndarray,
-                     interp_pts: np.ndarray,
-                     normals: np.ndarray,
-                     cosines: np.ndarray,
-                     scale: float,
-                     thickness: float,
-                     efforts_x: Sequence[float]) -> float:
-    """Computes for each image the norm of the divergence of the stress for the
-    given set of material parameters, and returns the sum of the errors for all
-    images.
+def error_diagonals(lib_path: Path,
+                    verbose: bool,
+                    exxs: Sequence[np.ndarray],
+                    eyys: Sequence[np.ndarray],
+                    exys: Sequence[np.ndarray],
+                    lambda_h: float,
+                    lambda_11: float,
+                    lambda_21: float,
+                    lambda_51: float,
+                    lambda_12: float,
+                    lambda_22: float,
+                    lambda_52: float,
+                    lambda_13: float,
+                    lambda_23: float,
+                    lambda_53: float,
+                    lambda_14: float,
+                    lambda_24: float,
+                    lambda_54: float,
+                    lambda_15: float,
+                    lambda_25: float,
+                    lambda_55: float,
+                    val1: float,
+                    val2: float,
+                    val3: float,
+                    val4: float,
+                    val5: float,
+                    theta_1: np.ndarray,
+                    theta_2: np.ndarray,
+                    theta_3: np.ndarray,
+                    sigma_1: np.ndarray,
+                    sigma_2: np.ndarray,
+                    sigma_3: np.ndarray,
+                    density: np.ndarray,
+                    interp_pts: np.ndarray,
+                    normals: np.ndarray,
+                    cosines: np.ndarray,
+                    scale: float,
+                    thickness: float,
+                    efforts_x: Sequence[float]) -> float:
+    """Computes for each image the error in the calculated forces along
+    diagonals for the given set of material parameters, and returns the sum of
+    the errors for all images.
 
     Args:
         lib_path: Path to the .so file containing the shared library for
@@ -311,8 +293,7 @@ def error_divergence(lib_path: Path,
     nb_tot = len(exxs)
 
     # Iterate over all the images and get each individual error
-    error_div_tot = 0.0
-    error_force_tot = 0.0
+    error_tot = 0.0
     for exx, eyy, exy, effort_x in tqdm(zip(exxs, eyys, exys, efforts_x),
                                         total=nb_tot,
                                         desc='Compute the stress for all the '
@@ -321,56 +302,47 @@ def error_divergence(lib_path: Path,
                                         colour='green',
                                         position=1,
                                         leave=False):
-        error_div, error_force = error_div_one_image(lib_path,
-                                                     exx,
-                                                     eyy,
-                                                     exy,
-                                                     lambda_h,
-                                                     lambda_11,
-                                                     lambda_21,
-                                                     lambda_51,
-                                                     lambda_12,
-                                                     lambda_22,
-                                                     lambda_52,
-                                                     lambda_13,
-                                                     lambda_23,
-                                                     lambda_53,
-                                                     lambda_14,
-                                                     lambda_24,
-                                                     lambda_54,
-                                                     lambda_15,
-                                                     lambda_25,
-                                                     lambda_55,
-                                                     val1,
-                                                     val2,
-                                                     val3,
-                                                     val4,
-                                                     val5,
-                                                     theta_1,
-                                                     theta_2,
-                                                     theta_3,
-                                                     sigma_1,
-                                                     sigma_2,
-                                                     sigma_3,
-                                                     density,
-                                                     interp_pts,
-                                                     normals,
-                                                     cosines,
-                                                     effort_x,
-                                                     scale,
-                                                     thickness)
-        error_div_tot += error_div
-        error_force_tot += error_force
-
-    # Normalize by the total number of images
-    error_div_tot /= nb_tot
-    error_force_tot /= nb_tot
-
-    # Print the errors if requested
+        error_tot += error_diags_one_image(lib_path,
+                                           exx,
+                                           eyy,
+                                           exy,
+                                           lambda_h,
+                                           lambda_11,
+                                           lambda_21,
+                                           lambda_51,
+                                           lambda_12,
+                                           lambda_22,
+                                           lambda_52,
+                                           lambda_13,
+                                           lambda_23,
+                                           lambda_53,
+                                           lambda_14,
+                                           lambda_24,
+                                           lambda_54,
+                                           lambda_15,
+                                           lambda_25,
+                                           lambda_55,
+                                           val1,
+                                           val2,
+                                           val3,
+                                           val4,
+                                           val5,
+                                           theta_1,
+                                           theta_2,
+                                           theta_3,
+                                           sigma_1,
+                                           sigma_2,
+                                           sigma_3,
+                                           density,
+                                           interp_pts,
+                                           normals,
+                                           cosines,
+                                           scale,
+                                           thickness,
+                                           effort_x)
+    error_tot /= nb_tot
+    
+    # Print the total error if requested
     if verbose:
-        print("\n",
-              error_div_tot, "\n",
-              error_force_tot, "\n",
-              error_div_tot + error_force_tot, "\n")
-
-    return error_div_tot + error_force_tot
+        print("\n", error_tot, "\n")
+    return error_tot
