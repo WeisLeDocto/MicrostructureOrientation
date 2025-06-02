@@ -84,6 +84,7 @@ if __name__ == "__main__":
     nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
     verbose = False
+    include_divergence = False
     dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results/results.csv")
     
     for img, f_x, index in tqdm(zip(def_images, efforts_x, indexes),
@@ -106,6 +107,7 @@ if __name__ == "__main__":
                            thickness,
                            nb_interp_diag,
                            diagonal_downscaling,
+                           include_divergence,
                            verbose,
                            dest_file,
                            index)

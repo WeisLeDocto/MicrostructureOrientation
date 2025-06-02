@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import re
 
-from kelvin_model import optimize_divergence, kelvin_lib_path
+from kelvin_model import optimize_diagonals, kelvin_lib_path
 
 if __name__ == "__main__":
 
@@ -83,23 +83,25 @@ if __name__ == "__main__":
     nb_interp_diag = 200  # ref_img.shape[0]
     diagonal_downscaling = 20
     verbose = False
+    include_divergence = True
     dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results/"
                      "results_multi_div.csv")
 
     # Optimize an all the images at once
-    optimize_divergence(lib_path,
-                        ref_img.astype(np.float64),
-                        density_base.astype(np.float64),
-                        gauss_fit.astype(np.float64),
-                        peaks.astype(np.float64),
-                        x0.astype(np.float64),
-                        def_images,
-                        efforts_x,
-                        order_coeffs,
-                        scale,
-                        thickness,
-                        nb_interp_diag,
-                        diagonal_downscaling,
-                        verbose,
-                        dest_file,
-                        index=0)
+    optimize_diagonals(lib_path,
+                       ref_img.astype(np.float64),
+                       density_base.astype(np.float64),
+                       gauss_fit.astype(np.float64),
+                       peaks.astype(np.float64),
+                       x0.astype(np.float64),
+                       def_images,
+                       efforts_x,
+                       order_coeffs,
+                       scale,
+                       thickness,
+                       nb_interp_diag,
+                       diagonal_downscaling,
+                       include_divergence,
+                       verbose,
+                       dest_file,
+                       index=0)
