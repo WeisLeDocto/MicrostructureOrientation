@@ -248,7 +248,7 @@ def error_divergence(lib_path: Path,
     images.
 
     Args:
-        lib_path:  Path to the .so file containing the shared library for
+        lib_path: Path to the .so file containing the shared library for
             computing the stress.
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
@@ -296,10 +296,15 @@ def error_divergence(lib_path: Path,
             tissue.
         interp_pts: A numpy array containing all the points over which to
             compute the stress for calculating the final error.
-        efforts_x: Sequence of floats representing the measured force in the x
-            direction, one for each image.
+        normals: A numpy array containing for each interpolation point the
+            normalized coordinates of its normal along the interpolation line.
+        cosines: A numpy array containing for each interpolation point the
+            scaling factor to use for correcting the inclination of the
+            interpolation line.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
+        efforts_x: Sequence of floats representing the measured force in the x
+            direction, one for each image.
 
     Returns:
         The total error as a float, for all the images together.
@@ -438,14 +443,19 @@ def _least_square_wrapper(x: np.ndarray,
             deviation of the third tissue layer.
         density_base: The base image from which to compute the density,
             normally one the raw images acquired for exposure fusion.
-        lib_path:  Path to the .so file containing the shared library for
+        lib_path: Path to the .so file containing the shared library for
             computing the stress.
         interp_pts: A numpy array containing all the points over which to
             compute the stress for calculating the final error.
-        efforts_x: Sequence of floats representing the measured force in the x
-            direction, one for each image.
+        normals: A numpy array containing for each interpolation point the
+            normalized coordinates of its normal along the interpolation line.
+        cosines: A numpy array containing for each interpolation point the
+            scaling factor to use for correcting the inclination of the
+            interpolation line.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
+        efforts_x: Sequence of floats representing the measured force in the x
+            direction, one for each image.
 
     Returns:
         The total error as a float, for all the images together.
@@ -548,7 +558,7 @@ def optimize_divergence(lib_path: Path,
     in the x direction.
 
     Args:
-        lib_path:  Path to the .so file containing the shared library for
+        lib_path: Path to the .so file containing the shared library for
             computing the stress.
         ref_img: The reference image for correlation.
         density_base: The base image from which to compute the density,
@@ -567,13 +577,14 @@ def optimize_divergence(lib_path: Path,
             the orders of the material model.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
+        nb_interp_diag: Number of interpolation points along the diagonals.
+        diagonal_downscaling: Only one out of this number diagonals will be
+            used for performing the optimization.
         verbose: It True, the values of the parameters are printed at each
             iteration of the optimization loop. Otherwise, they are never
             displayed.
         dest_file: Path to a .csv file where to store the output of the
             optimization.
-        cross_section_downscaling: Only one out of this number of sections will
-            be used for performing the correction.
         index: Index of the processed image in case only one image is being
             processed, otherwise leave to default.
     """
@@ -642,7 +653,7 @@ def optimize_divergence(lib_path: Path,
                                 'thickness': thickness,
                                 'efforts_x': efforts_x})
 
-    # Save the results to a .csv file
+    # Save the results to a csv file
     save_results(fit.x,
                  dest_file,
                  order_coeffs,
