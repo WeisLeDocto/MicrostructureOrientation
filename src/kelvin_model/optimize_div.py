@@ -238,10 +238,11 @@ def error_divergence(lib_path: Path,
                      sigma_3: np.ndarray,
                      density: np.ndarray,
                      interp_pts: np.ndarray,
-                     efforts_x: Sequence[float],
+                     normals: np.ndarray,
+                     cosines: np.ndarray,
                      scale: float,
                      thickness: float,
-                     ) -> float:
+                     efforts_x: Sequence[float]) -> float:
     """Computes for each image the norm of the divergence of the stress for the
     given set of material parameters, and returns the sum of the errors for all
     images.
@@ -303,13 +304,6 @@ def error_divergence(lib_path: Path,
     Returns:
         The total error as a float, for all the images together.
     """
-
-    # Not really needed as the sections are straight and vertical, but defined
-    # for compatibility
-    normals = np.zeros_like(interp_pts)
-    normals[..., 0] = 1.0
-    cosines = np.full_like(interp_pts, 1.0)
-    normals = normals[..., np.newaxis]
 
     nb_tot = len(exxs)
 
@@ -400,9 +394,11 @@ def _least_square_wrapper(x: np.ndarray,
                           density_base: np.ndarray,
                           lib_path: Path,
                           interp_pts: np.ndarray,
-                          efforts_x: Sequence[float],
+                          normals: np.ndarray,
+                          cosines: np.ndarray,
                           scale: float,
                           thickness: float,
+                          efforts_x: Sequence[float]
                           ) -> float:
     """Parses the arguments from the optimization function, to pass them to the
     function computing the error.
@@ -523,9 +519,11 @@ def _least_square_wrapper(x: np.ndarray,
                             sigma_3,
                             density,
                             interp_pts,
-                            efforts_x,
+                            normals,
+                            cosines,
                             scale,
-                            thickness)
+                            thickness,
+                            efforts_x)
 
 
 def optimize_divergence(lib_path: Path,
@@ -539,9 +537,10 @@ def optimize_divergence(lib_path: Path,
                         order_coeffs: np.ndarray,
                         scale: float,
                         thickness: float,
+                        nb_interp_diag: int,
+                        diagonal_downscaling: int,
                         verbose: bool,
                         dest_file: Path,
-                        cross_section_downscaling: int,
                         index: int = 0) -> None:
     """Takes a set of images as an input, and finds the best set of material
     parameters that minimizes both the norm of the divergence over the entire
@@ -580,18 +579,15 @@ def optimize_divergence(lib_path: Path,
     """
 
     # Perform a first processing on the input data
-    (exxs, eyys, exys, sigma_1, sigma_2, sigma_3,
-     theta_1, theta_2, theta_3, *_) = prepare_data(ref_img,
-                                                   gauss_fit,
-                                                   peaks,
-                                                   def_images,
-                                                   None,
-                                                   None)
-
-    # Define perpendicular sections
-    interp_pts = np.stack(np.meshgrid(np.arange(ref_img.shape[0]),
-                                      np.arange(ref_img.shape[1])), axis=2)
-    interp_pts = interp_pts[::cross_section_downscaling]
+    (exxs, eyys, exys,
+     sigma_1, sigma_2, sigma_3,
+     theta_1, theta_2, theta_3,
+     interp_pts, normals, cosines) = prepare_data(ref_img,
+                                                  gauss_fit,
+                                                  peaks,
+                                                  def_images,
+                                                  nb_interp_diag,
+                                                  diagonal_downscaling)
 
     # Define the bounds for all the parameters
     nb_max = 17
@@ -640,9 +636,11 @@ def optimize_divergence(lib_path: Path,
                                 'density_base': density_base,
                                 'lib_path': lib_path,
                                 'interp_pts': interp_pts,
-                                'efforts_x': efforts_x,
+                                'normals': normals,
+                                'cosines': cosines,
                                 'scale': scale,
-                                'thickness': thickness})
+                                'thickness': thickness,
+                                'efforts_x': efforts_x})
 
     # Save the results to a .csv file
     save_results(fit.x,
