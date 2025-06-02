@@ -200,6 +200,7 @@ def error_div_one_image(lib_path: Path,
                                            scale,
                                            thickness)
     error_force = abs(float(np.median(comp_force_x)) - effort_x)
+    error_force /= effort_x
 
     return error_div, error_force
 

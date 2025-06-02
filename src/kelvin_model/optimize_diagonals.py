@@ -183,7 +183,7 @@ def error_diags_one_image(lib_path: Path,
                                            thickness)
     
     # Return the error as the difference between the computed and expect effort
-    return abs(float(np.median(comp_force_x)) - effort_x)
+    return abs(float(np.median(comp_force_x)) - effort_x) / effort_x
 
 
 def error_diagonals(lib_path: Path,
