@@ -80,7 +80,8 @@ if __name__ == "__main__":
     thickness = 0.54
 
     # Other parameters driving the optimization process
-    cross_section_downscaling = 5
+    nb_interp_diag = 200  # ref_img.shape[0]
+    diagonal_downscaling = 20
     verbose = False
     dest_file = Path("/home/weis/Desktop/HDR/7LX1_2/results/"
                      "results_multi_div.csv")
@@ -97,7 +98,8 @@ if __name__ == "__main__":
                         order_coeffs,
                         scale,
                         thickness,
+                        nb_interp_diag,
+                        diagonal_downscaling,
                         verbose,
                         dest_file,
-                        cross_section_downscaling,
                         index=0)
