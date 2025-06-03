@@ -13,8 +13,8 @@ def prepare_data(ref_img: np.ndarray,
                  gauss_fit: np.ndarray,
                  peaks: np.ndarray,
                  def_images: Sequence[np.ndarray],
-                 nb_interp_diag: int | None,
-                 diagonal_downscaling: int | None
+                 nb_interp_diag: int,
+                 diagonal_downscaling: int
                  ) -> tuple[Sequence[np.ndarray],
                             Sequence[np.ndarray],
                             Sequence[np.ndarray],
@@ -24,9 +24,9 @@ def prepare_data(ref_img: np.ndarray,
                             np.ndarray,
                             np.ndarray,
                             np.ndarray,
-                            np.ndarray | None,
-                            np.ndarray | None,
-                            np.ndarray | None]:
+                            np.ndarray,
+                            np.ndarray,
+                            np.ndarray]:
     """Takes the input data and computes various other values from it.
 
     Convenience function that avoids repeating the same operations at multiple
@@ -71,40 +71,31 @@ def prepare_data(ref_img: np.ndarray,
     theta_3 = np.nan_to_num(peaks[:, :, 2])
 
     # Generate the interpolation points on the diagonals
-    if nb_interp_diag is not None and diagonal_downscaling is not None:
-        interp_pts = np.empty((ref_img.shape[1], nb_interp_diag, 2),
-                              dtype=np.float64)
-        for j in range(interp_pts.shape[0]):
-            interp_pts[j, :, 1] = np.linspace(j, ref_img.shape[1] - 1 - j,
-                                              nb_interp_diag)
-            interp_pts[j, :, 0] = np.linspace(0, ref_img.shape[0] - 1,
-                                              nb_interp_diag)
-        interp_pts = interp_pts[::diagonal_downscaling]
-
-    else:
-        interp_pts = None
+    interp_pts = np.empty((ref_img.shape[1], nb_interp_diag, 2),
+                          dtype=np.float64)
+    for j in range(interp_pts.shape[0]):
+        interp_pts[j, :, 1] = np.linspace(j, ref_img.shape[1] - 1 - j,
+                                          nb_interp_diag)
+        interp_pts[j, :, 0] = np.linspace(0, ref_img.shape[0] - 1,
+                                          nb_interp_diag)
+    interp_pts = interp_pts[::diagonal_downscaling]
 
     # Generate the normals to the diagonals on each interpolation point
-    if nb_interp_diag is not None and diagonal_downscaling is not None:
-        normals = np.zeros((ref_img.shape[1], nb_interp_diag, 2),
-                           dtype=np.float64)
-        for i in range(normals.shape[0]):
-            normals[i] = np.array((1.0, (ref_img.shape[1] - 2 * i - 1) /
-                                   ref_img.shape[0]),
-                                  dtype=np.float64)
-            normals[i] /= np.linalg.norm(normals[i], axis=1)[:, np.newaxis]
-        normals = normals[::diagonal_downscaling]
+    normals = np.zeros((ref_img.shape[1], nb_interp_diag, 2),
+                       dtype=np.float64)
+    for i in range(normals.shape[0]):
+        normals[i] = np.array((1.0, (ref_img.shape[1] - 2 * i - 1) /
+                               ref_img.shape[0]),
+                              dtype=np.float64)
+        normals[i] /= np.linalg.norm(normals[i], axis=1)[:, np.newaxis]
+    normals = normals[::diagonal_downscaling]
 
-        # The correction factor for the inclination of the diagonals
-        cosines = normals @ np.array((1.0, 0.0), dtype=np.float64)
+    # The correction factor for the inclination of the diagonals
+    cosines = normals @ np.array((1.0, 0.0), dtype=np.float64)
 
-        # Necessary for matrix multiplication later on
-        normals = normals[..., np.newaxis]
-        cosines = cosines[..., np.newaxis]
-
-    else:
-        normals = None
-        cosines = None
+    # Necessary for matrix multiplication later on
+    normals = normals[..., np.newaxis]
+    cosines = cosines[..., np.newaxis]
 
     return (exxs, eyys, exys, sigma_1, sigma_2, sigma_3, theta_1, theta_2,
             theta_3, interp_pts, normals, cosines)
