@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 from collections.abc import Sequence
 from scipy.interpolate import RegularGridInterpolator
-from scipy.ndimage import sobel
+from scipy.signal import convolve2d
 from tqdm.auto import tqdm
 import sys
 
@@ -51,9 +51,10 @@ def error_div_one_image(lib_path: Path,
                         scale: float,
                         thickness: float,
                         ) -> tuple[float, float]:
-    """Computes the stress over the entire image, computes the divergence of
-    the stress and estimates the force in the x axis, then returns the norm of
-    the divergence and the error in the computed force.
+    """Computes the stress over the entire image, computes the residuals of
+    the stress convolved with gaussian derivatives and estimates the force in
+    the x axis, then returns the norm of the residuals and the error in the
+    computed force.
 
     Args:
         lib_path: Path to the .so file containing the shared library for
@@ -108,7 +109,7 @@ def error_div_one_image(lib_path: Path,
         thickness: The thickness of the sample in mm, as a float.
 
     Returns:
-        The norm of the divergence over the entire image, normalized by various
+        The norm of the residuals over the entire image, normalized by various
         factors, and the error in the computed force.
     """
 
@@ -158,22 +159,31 @@ def error_div_one_image(lib_path: Path,
                                    sigma_3,
                                    density)
 
-    # Build the divergence tensor
+    # Create convolution kernels for Gaussian derivative
+    radius = 3
+    x = y = np.arange(-3 * radius, 3 * radius + 1)
+    grid_x, grid_y = np.meshgrid(x, y)
+    gauss = (2 * np.pi * radius ** 2) * np.exp(-(grid_x ** 2 + grid_y ** 2)
+                                               / (2 * radius ** 2))
+    gauss_dev_x = -grid_x / radius ** 2 * gauss
+    gauss_dev_y = -grid_y / radius ** 2 * gauss
+
+    # Build the residuals tensor
     stress = np.stack((np.stack((sxx, sxy), axis=2),
                        np.stack((sxy, syy), axis=2)), axis=3)
-    dxx_dx = sobel(stress[:, :, 0, 0], 1)
-    dxy_dx = sobel(stress[:, :, 0, 1], 1)
-    dxy_dy = sobel(stress[:, :, 1, 0], 0)
-    dyy_dy = sobel(stress[:, :, 1, 1], 0)
-    div = np.stack((dxx_dx + dxy_dy, dxy_dx + dyy_dy), axis=2)
+    dxx_dx = convolve2d(sxx, gauss_dev_x, mode='valid')
+    dxy_dx = convolve2d(sxy, gauss_dev_x, mode='valid')
+    dxy_dy = convolve2d(sxy, gauss_dev_y, mode='valid')
+    dyy_dy = convolve2d(syy, gauss_dev_y, mode='valid')
+    res = np.stack((dxx_dx + dxy_dy, dxy_dx + dyy_dy), axis=2)
+    res *= scale ** 2 * thickness
 
-    # Compute the norm of the divergence
-    error_div = np.sum(np.sqrt(np.sum(np.power(div, 2), axis=-1)), axis=None)
-    error_div /= np.sum(np.sqrt(np.sum(np.power(stress, 2), axis=-1)),
+    # Compute the norm of the residuals
+    error_res = np.sum(np.sqrt(np.sum(np.power(res, 2), axis=-1)), axis=None)
+    error_res /= np.sum(np.sqrt(np.sum(np.power(stress, 2), axis=(-1, -2))),
                         axis=None)
-    error_div /= exx.shape[0] * exx.shape[1]
-    # Increase error to match scale of force
-    error_div *= 1.0e6
+    error_res /= exx.shape[0] * exx.shape[1]
+    error_res *= 1.0e7
 
     # Interpolate the stress fields over the provided interpolation points
     sxx_int = RegularGridInterpolator((np.arange(sxx.shape[0]),
@@ -199,7 +209,7 @@ def error_div_one_image(lib_path: Path,
     error_force = abs(float(np.median(comp_force_x)) - effort_x)
     error_force /= effort_x
 
-    return error_div, error_force
+    return error_res, error_force
 
 
 def error_divergence(lib_path: Path,
