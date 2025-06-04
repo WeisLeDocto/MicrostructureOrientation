@@ -164,13 +164,21 @@ def error_div_one_image(lib_path: Path,
     gauss_dev_x = -grid_x / radius ** 2 * gauss
     gauss_dev_y = -grid_y / radius ** 2 * gauss
 
+    low_cutoff = density.shape[1] // 10
+    high_cutoff = (9 * density.shape[1]) // 10
+
     # Build the residuals tensor
     stress = np.stack((np.stack((sxx, sxy), axis=2),
                        np.stack((sxy, syy), axis=2)), axis=3)
-    dxx_dx = convolve2d(sxx, gauss_dev_x, mode='valid')
-    dxy_dx = convolve2d(sxy, gauss_dev_x, mode='valid')
-    dxy_dy = convolve2d(sxy, gauss_dev_y, mode='valid')
-    dyy_dy = convolve2d(syy, gauss_dev_y, mode='valid')
+    stress = stress[:, low_cutoff:high_cutoff]
+    dxx_dx = convolve2d(sxx[:, low_cutoff:high_cutoff], gauss_dev_x,
+                        mode='valid')
+    dxy_dx = convolve2d(sxy[:, low_cutoff:high_cutoff], gauss_dev_x,
+                        mode='valid')
+    dxy_dy = convolve2d(sxy[:, low_cutoff:high_cutoff], gauss_dev_y,
+                        mode='valid')
+    dyy_dy = convolve2d(syy[:, low_cutoff:high_cutoff], gauss_dev_y,
+                        mode='valid')
     res = np.stack((dxx_dx + dxy_dy, dxy_dx + dyy_dy), axis=2)
     res *= scale ** 2 * thickness
 
