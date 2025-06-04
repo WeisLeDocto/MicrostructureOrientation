@@ -63,12 +63,12 @@ def compare_results_expe(lib_path: Path,
     (exxs, eyys, exys,
      sigma_1, sigma_2, sigma_3,
      theta_1, theta_2, theta_3,
-     interp_pts, normals, cosines) = prepare_data(ref_img,
-                                                  gauss_fit,
-                                                  peaks,
-                                                  def_images,
-                                                  nb_interp_diag,
-                                                  diagonal_downscaling)
+     interp_pts, normals) = prepare_data(ref_img,
+                                         gauss_fit,
+                                         peaks,
+                                         def_images,
+                                         nb_interp_diag,
+                                         diagonal_downscaling)
 
     # Read the fitted material properties from a results file
     result_props = pd.read_csv(results_file)
@@ -143,10 +143,8 @@ def compare_results_expe(lib_path: Path,
         comp_force_x, comp_force_y = stress_diag_to_force(sxx,
                                                           syy,
                                                           sxy,
-                                                          density.shape[0],
-                                                          interp_pts.shape[1],
+                                                          interp_pts,
                                                           normals,
-                                                          cosines,
                                                           scale,
                                                           thickness)
 

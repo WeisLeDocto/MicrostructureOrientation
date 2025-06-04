@@ -25,7 +25,6 @@ def prepare_data(ref_img: np.ndarray,
                             np.ndarray,
                             np.ndarray,
                             np.ndarray,
-                            np.ndarray,
                             np.ndarray]:
     """Takes the input data and computes various other values from it.
 
@@ -53,9 +52,8 @@ def prepare_data(ref_img: np.ndarray,
         layer, the local angle array for the first tissue layer, the local
         angle array for the second tissue layer, the local angle array for the
         third tissue layer, an array containing the coordinates of the diagonal
-        points, an array containing the coordinates of the normals to the
-        diagonal points, and an array containing the correction factor for the
-        inclination of the diagonals in each interpolation point.
+        points, and an array containing the coordinates of the normals to the
+        diagonal points.
     """
 
     # First, compute the strain using digital image correlation
@@ -90,15 +88,11 @@ def prepare_data(ref_img: np.ndarray,
         normals[i] /= np.linalg.norm(normals[i], axis=1)[:, np.newaxis]
     normals = normals[::diagonal_downscaling]
 
-    # The correction factor for the inclination of the diagonals
-    cosines = normals @ np.array((1.0, 0.0), dtype=np.float64)
-
     # Necessary for matrix multiplication later on
     normals = normals[..., np.newaxis]
-    cosines = cosines[..., np.newaxis]
 
     return (exxs, eyys, exys, sigma_1, sigma_2, sigma_3, theta_1, theta_2,
-            theta_3, interp_pts, normals, cosines)
+            theta_3, interp_pts, normals)
 
 
 def diagonals_interpolator(exx: np.ndarray,
@@ -230,10 +224,8 @@ def calc_density(density_base: np.ndarray,
 def stress_diag_to_force(sxx: np.ndarray,
                          syy: np.ndarray,
                          sxy: np.ndarray,
-                         img_h: int,
-                         diag_len: int,
+                         interp_pts: np.ndarray,
                          normals: np.ndarray,
-                         cosines: np.ndarray,
                          scale: float,
                          thickness: float
                          ) -> tuple[np.ndarray, np.ndarray]:
@@ -244,13 +236,10 @@ def stress_diag_to_force(sxx: np.ndarray,
         sxx: The computed xx stress field, as an array.
         syy: The computed yy stress field, as an array.
         sxy: The computed xy stress field, as an array.
-        img_h: The height of the original image in pixels, for normalization.
-        diag_len: The number of points in a single diagonal.
+        interp_pts: A numpy array containing all the points over which to
+            compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
             normalized coordinates of its normal along the interpolation line.
-        cosines: A numpy array containing for each interpolation point the
-            scaling factor to use for correcting the inclination of the
-            interpolation line.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
 
@@ -259,16 +248,20 @@ def stress_diag_to_force(sxx: np.ndarray,
         in the x and y directions, respectively.
     """
 
-    # Normalize by the number of points in a digonal otherwise with fewer
-    # points one cannot reach the target force with the same properties
-    downscale_factor_h = diag_len / img_h
-
-    # Integrate the stress over the diagonals to get the x and y efforts
+    # Project the stress tensor on the normals to the integration path
     stress = np.stack((np.stack((sxx, sxy), axis=2),
                        np.stack((sxy, syy), axis=2)), axis=3)
-    proj = (stress @ normals).squeeze() * scale * thickness / cosines
-    sum_diags = np.sum(proj, axis=1)
-    sum_diags /= downscale_factor_h
+    proj = (stress @ normals).squeeze()
+
+    # Build the distance array to serve as an x-axis for integration
+    dist_to_prev = np.sqrt(np.sum(np.power(
+        interp_pts - np.roll(interp_pts, 1, axis=1), 2), axis=-1))
+    dist_to_prev[..., 0] = 0.0
+    dist_to_begin = np.cumsum(dist_to_prev, axis=1)
+    dist_to_begin *= scale * thickness
+
+    # Integrate the stress over the diagonals to get the x and y efforts
+    sum_diags = np.trapezoid(proj, x=dist_to_begin[..., np.newaxis], axis=1)
 
     return sum_diags[:, 0], sum_diags[:, 1]
 

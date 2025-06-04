@@ -46,7 +46,6 @@ def error_div_one_image(lib_path: Path,
                         density: np.ndarray,
                         interp_pts: np.ndarray,
                         normals: np.ndarray,
-                        cosines: np.ndarray,
                         effort_x: float,
                         scale: float,
                         thickness: float,
@@ -101,9 +100,6 @@ def error_div_one_image(lib_path: Path,
             compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
             normalized coordinates of its normal along the interpolation line.
-        cosines: A numpy array containing for each interpolation point the
-            scaling factor to use for correcting the inclination of the
-            interpolation line.
         effort_x: The measured effort in x during the test.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
@@ -200,10 +196,8 @@ def error_div_one_image(lib_path: Path,
     comp_force_x, _ = stress_diag_to_force(sxx_diags,
                                            syy_diags,
                                            sxy_diags,
-                                           density.shape[0],
-                                           interp_pts.shape[1],
+                                           interp_pts,
                                            normals,
-                                           cosines,
                                            scale,
                                            thickness)
     error_force = abs(float(np.median(comp_force_x)) - effort_x)
@@ -247,7 +241,6 @@ def error_divergence(lib_path: Path,
                      density: np.ndarray,
                      interp_pts: np.ndarray,
                      normals: np.ndarray,
-                     cosines: np.ndarray,
                      scale: float,
                      thickness: float,
                      efforts_x: Sequence[float]) -> float:
@@ -306,9 +299,6 @@ def error_divergence(lib_path: Path,
             compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
             normalized coordinates of its normal along the interpolation line.
-        cosines: A numpy array containing for each interpolation point the
-            scaling factor to use for correcting the inclination of the
-            interpolation line.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         efforts_x: Sequence of floats representing the measured force in the x
@@ -365,7 +355,6 @@ def error_divergence(lib_path: Path,
                                                      density,
                                                      interp_pts,
                                                      normals,
-                                                     cosines,
                                                      effort_x,
                                                      scale,
                                                      thickness)

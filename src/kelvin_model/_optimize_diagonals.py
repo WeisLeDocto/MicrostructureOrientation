@@ -44,7 +44,6 @@ def error_diags_one_image(lib_path: Path,
                           density: np.ndarray,
                           interp_pts: np.ndarray,
                           normals: np.ndarray,
-                          cosines: np.ndarray,
                           scale: float,
                           thickness: float,
                           effort_x: float) -> float:
@@ -96,9 +95,6 @@ def error_diags_one_image(lib_path: Path,
             compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
             normalized coordinates of its normal along the interpolation line.
-        cosines: A numpy array containing for each interpolation point the
-            scaling factor to use for correcting the inclination of the
-            interpolation line.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         effort_x: The measured effort in x during the test.
@@ -170,13 +166,11 @@ def error_diags_one_image(lib_path: Path,
                                    density_diags)
         
     # Derive the force from the stress fields
-    comp_force_x, _ = stress_diag_to_force(sxx,
+    comp_force_x, a = stress_diag_to_force(sxx,
                                            syy,
                                            sxy,
-                                           density.shape[0],
-                                           interp_pts.shape[1],
+                                           interp_pts,
                                            normals,
-                                           cosines,
                                            scale,
                                            thickness)
     
@@ -219,7 +213,6 @@ def error_diagonals(lib_path: Path,
                     density: np.ndarray,
                     interp_pts: np.ndarray,
                     normals: np.ndarray,
-                    cosines: np.ndarray,
                     scale: float,
                     thickness: float,
                     efforts_x: Sequence[float]) -> float:
@@ -278,9 +271,6 @@ def error_diagonals(lib_path: Path,
             compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
             normalized coordinates of its normal along the interpolation line.
-        cosines: A numpy array containing for each interpolation point the
-            scaling factor to use for correcting the inclination of the
-            interpolation line.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         efforts_x: Sequence of floats representing the measured force in the x
@@ -336,7 +326,6 @@ def error_diagonals(lib_path: Path,
                                            density,
                                            interp_pts,
                                            normals,
-                                           cosines,
                                            scale,
                                            thickness,
                                            effort_x)

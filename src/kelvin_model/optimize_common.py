@@ -33,7 +33,6 @@ def _least_square_wrapper(x: np.ndarray,
                           lib_path: Path,
                           interp_pts: np.ndarray,
                           normals: np.ndarray,
-                          cosines: np.ndarray,
                           scale: float,
                           thickness: float,
                           efforts_x: Sequence[float]
@@ -85,9 +84,6 @@ def _least_square_wrapper(x: np.ndarray,
             compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
             normalized coordinates of its normal along the interpolation line.
-        cosines: A numpy array containing for each interpolation point the
-            scaling factor to use for correcting the inclination of the
-            interpolation line.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         efforts_x: Sequence of floats representing the measured force in the x
@@ -167,7 +163,6 @@ def _least_square_wrapper(x: np.ndarray,
                                density,
                                interp_pts,
                                normals,
-                               cosines,
                                scale,
                                thickness,
                                efforts_x)
@@ -207,7 +202,6 @@ def _least_square_wrapper(x: np.ndarray,
                                 density,
                                 interp_pts,
                                 normals,
-                                cosines,
                                 scale,
                                 thickness,
                                 efforts_x)
@@ -276,12 +270,12 @@ def optimize_diagonals(lib_path: Path,
     (exxs, eyys, exys,
      sigma_1, sigma_2, sigma_3,
      theta_1, theta_2, theta_3,
-     interp_pts, normals, cosines) = prepare_data(ref_img,
-                                                  gauss_fit,
-                                                  peaks,
-                                                  def_images,
-                                                  nb_interp_diag,
-                                                  diagonal_downscaling)
+     interp_pts, normals) = prepare_data(ref_img,
+                                         gauss_fit,
+                                         peaks,
+                                         def_images,
+                                         nb_interp_diag,
+                                         diagonal_downscaling)
 
     # Define the bounds for all the parameters
     nb_max = 17
@@ -332,7 +326,6 @@ def optimize_diagonals(lib_path: Path,
                                 'lib_path': lib_path,
                                 'interp_pts': interp_pts,
                                 'normals': normals,
-                                'cosines': cosines,
                                 'scale': scale,
                                 'thickness': thickness,
                                 'efforts_x': efforts_x})
