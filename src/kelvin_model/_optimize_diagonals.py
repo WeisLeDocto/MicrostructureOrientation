@@ -166,7 +166,7 @@ def error_diags_one_image(lib_path: Path,
                                    density_diags)
         
     # Derive the force from the stress fields
-    comp_force_x, a = stress_diag_to_force(sxx,
+    comp_force_x, _ = stress_diag_to_force(sxx,
                                            syy,
                                            sxy,
                                            interp_pts,
