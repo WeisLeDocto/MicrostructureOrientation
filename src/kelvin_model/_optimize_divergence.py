@@ -159,8 +159,8 @@ def error_div_one_image(lib_path: Path,
     radius = 3
     x = y = np.arange(-3 * radius, 3 * radius + 1)
     grid_x, grid_y = np.meshgrid(x, y)
-    gauss = (2 * np.pi * radius ** 2) * np.exp(-(grid_x ** 2 + grid_y ** 2)
-                                               / (2 * radius ** 2))
+    gauss = (1 / (2 * np.pi * radius ** 2) *
+             np.exp(-(grid_x ** 2 + grid_y ** 2) / (2 * radius ** 2)))
     gauss_dev_x = -grid_x / radius ** 2 * gauss
     gauss_dev_y = -grid_y / radius ** 2 * gauss
 
@@ -179,7 +179,7 @@ def error_div_one_image(lib_path: Path,
     error_res /= np.sum(np.sqrt(np.sum(np.power(stress, 2), axis=(-1, -2))),
                         axis=None)
     error_res /= exx.shape[0] * exx.shape[1]
-    error_res *= 1.0e7
+    error_res *= 5.0e10
 
     # Interpolate the stress fields over the provided interpolation points
     sxx_int = RegularGridInterpolator((np.arange(sxx.shape[0]),
