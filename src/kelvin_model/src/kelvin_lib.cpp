@@ -296,13 +296,13 @@ Eigen::Matrix<double, 6, 1> final_stress(
     const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
     const Eigen::Matrix<double, 6, 1> strain,
     const std::array<double, 5> &vals) {
-    
-  std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+
   /// Initialize order 0
   Eigen::Matrix<double, 6, 6> stiff_tot = vals[0] * stiffness[0];
 
   /// Pre-compute the valid orders
   std::vector<size_t> valid_orders;
+  double factor;
   #pragma GCC unroll 4
   #pragma GCC ivdep
   for (size_t j = 1; j < vals.size(); ++j) {
@@ -314,10 +314,10 @@ Eigen::Matrix<double, 6, 1> final_stress(
 
     /// For each order greater than 1, there is a multiplicative factor
     /// dependent on the strain and stiffness
-    factor[j] = strain.dot(stiffness[j] * strain);
+    factor = strain.dot(stiffness[j] * strain);
 
     /// The total equivalent stiffness is the sum of the ones for each order
-    stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j];
+    stiff_tot += vals[j] * (j + 1) * pow(factor, j) * stiffness[j];
   }
   
   return stiff_tot * strain;
@@ -335,10 +335,10 @@ float calc_ezz_plane_stress(
     const std::array<double, 5> &vals,
     const double stop_crit,
     const int max_iter) {
-  
-  std::array<double, 5> factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+
   /// Initialize order 0
   Eigen::Matrix<double, 1, 6> stiff_tot = vals[0] * stiffness[0].row(2);
+  double factor;
 
   /// Pre-compute the valid orders
   std::vector<size_t> valid_orders;
@@ -353,10 +353,10 @@ float calc_ezz_plane_stress(
 
     /// For each order greater than 1, there is a multiplicative factor
     /// dependent on the strain and stiffness
-    factor[j] = strain.dot(stiffness[j] * strain);
+    factor = strain.dot(stiffness[j] * strain);
 
     /// The total equivalent stiffness is the sum of the ones for each order
-    stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
+    stiff_tot += vals[j] * (j + 1) * pow(factor, j) * stiffness[j].row(2);
   }
 
   /// Compute the zz strain component
@@ -381,8 +381,7 @@ float calc_ezz_plane_stress(
   int n = 0;
   while (n < max_iter) {
     ++n;
-    
-    factor = {1.0, 0.0, 0.0, 0.0, 0.0};
+
     /// Initialize order 0
     stiff_tot = vals[0] * stiffness[0].row(2);
 
@@ -391,10 +390,10 @@ float calc_ezz_plane_stress(
 
       /// For each order greater than 1, there is a multiplicative factor
       /// dependent on the strain and stiffness
-      factor[j] = strain.dot(stiffness[j] * strain);
+      factor = strain.dot(stiffness[j] * strain);
 
       /// The total equivalent stiffness is the sum of the ones for each order
-      stiff_tot += vals[j] * (j + 1) * pow(factor[j], j) * stiffness[j].row(2);
+      stiff_tot += vals[j] * (j + 1) * pow(factor, j) * stiffness[j].row(2);
     }
 
     /// Compute the zz strain component
