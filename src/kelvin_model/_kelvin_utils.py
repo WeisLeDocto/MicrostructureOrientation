@@ -208,7 +208,8 @@ def diagonals_interpolator(exx: np.ndarray,
 
 
 def calc_density(density_base: np.ndarray,
-                 dens_min: float) -> np.ndarray:
+                 dens_min: float,
+                 contrast: float) -> np.ndarray:
     """Computes the density from the base image and the minimum density
     value.
 
@@ -216,13 +217,17 @@ def calc_density(density_base: np.ndarray,
         density_base: The base image from which to calculate the density map.
         dens_min: The minimum density that the less exposed pixel in the image
             should have, between 0 and 1.
+        contrast: A parameter driving the shape of the intensity-to-density
+            response.
 
     Returns:
         The density map associated with the image.
     """
 
     d_max, d_min = density_base.max(), density_base.min()
-    return 1 - (1 - dens_min) * (density_base - d_min) / (d_max - d_min)
+    normalized = (density_base - d_min) / (d_max - d_min)
+    normalized = np.power(1 - normalized, contrast)
+    return (normalized + dens_min) / (1 + normalized * dens_min)
 
 
 def stress_diag_to_force(sxx: np.ndarray,
@@ -295,10 +300,10 @@ def save_results(fit_vals: np.ndarray,
 
     # The labels of all the value to save for making the model
     labels = ("idx", "val1", "val2", "val3", "val4", "val5", "density_min",
-              "lambda_h", "lambda_11", "lambda_21", "lambda_51", "lambda_12",
-              "lambda_22", "lambda_52", "lambda_13", "lambda_23", "lambda_53",
-              "lambda_14", "lambda_24", "lambda_54", "lambda_15", "lambda_25",
-              "lambda_55")
+              "contrast", "lambda_h", "lambda_11", "lambda_21", "lambda_51",
+              "lambda_12", "lambda_22", "lambda_52", "lambda_13", "lambda_23",
+              "lambda_53", "lambda_14", "lambda_24", "lambda_54", "lambda_15",
+              "lambda_25", "lambda_55")
 
     # Load previous results if they already exist at the indicated location
     if dest_file.exists() and dest_file.is_file():

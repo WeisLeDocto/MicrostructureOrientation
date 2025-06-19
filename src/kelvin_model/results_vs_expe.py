@@ -74,7 +74,9 @@ def compare_results_expe(lib_path: Path,
     result_props = pd.read_csv(results_file)
 
     # Compute the density from the base image and the minimum density value
-    density = calc_density(density_base, result_props["density_min"].iloc[0])
+    density = calc_density(density_base,
+                           result_props["density_min"].iloc[0],
+                           result_props["contrast"].iloc[0])
 
     # Buffers to store the simulated efforts
     forces_x = list()

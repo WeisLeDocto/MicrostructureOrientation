@@ -98,11 +98,12 @@ def _least_square_wrapper(x: np.ndarray,
     x = iter(x)
     extra_vals = iter(extra_vals)
 
-    # The first value is always the minimum material density
+    # The first values are always the material density parameters
     dens_min = next(x)
+    contrast = next(x)
 
     # Retrieve all the material parameters from the correct iterables
-    for i, flag in enumerate(to_fit[1:].tolist()):
+    for i, flag in enumerate(to_fit[2:].tolist()):
         if flag:
             lambdas[i] = next(x)
         else:
@@ -117,7 +118,7 @@ def _least_square_wrapper(x: np.ndarray,
 
     # If requested, print the values of the material parameters
     if verbose:
-        print(dens_min, lambda_h,
+        print(dens_min, contrast, lambda_h,
               lambda_11, lambda_21, lambda_51,
               lambda_12, lambda_22, lambda_52,
               lambda_13, lambda_23, lambda_53,
@@ -125,7 +126,7 @@ def _least_square_wrapper(x: np.ndarray,
               lambda_15, lambda_25, lambda_55)
 
     # Compute the density from the base image and the minimum density value
-    density = calc_density(density_base, dens_min)
+    density = calc_density(density_base, dens_min, contrast)
 
     if not include_divergence:
         return error_diagonals(lib_path,
@@ -278,10 +279,11 @@ def optimize_diagonals(lib_path: Path,
                                          diagonal_downscaling)
 
     # Define the bounds for all the parameters
-    nb_max = 17
+    nb_max = 18
     low_bounds = np.array((1.0e-5,) * nb_max)
     low_bounds[0] = 0.0
-    low_bounds[1] = 1.0
+    low_bounds[1] = 0.0
+    low_bounds[2] = 1.0
     high_bounds = np.array((np.inf,) * nb_max)
     high_bounds[0] = 0.99
 
@@ -289,14 +291,14 @@ def optimize_diagonals(lib_path: Path,
     # of the factors for each order
     to_fit = np.full(nb_max, True, dtype=np.bool_)
     for idx in np.where(order_coeffs == 0.0)[0].tolist():
-        to_fit[2 + 3 * idx: 2 + 3 * (idx + 1)] = False
+        to_fit[3 + 3 * idx: 3 + 3 * (idx + 1)] = False
     low_bounds = low_bounds[to_fit]
     high_bounds = high_bounds[to_fit]
     extra_vals = x0[~to_fit]
     x0 = x0[to_fit]
     bounds = Bounds(lb=low_bounds, ub=high_bounds)
     x_scale = np.ones(nb_max, dtype=np.float64)
-    x_scale[5:] = 10.0
+    # x_scale[6:] = 10.0
     x_scale = x_scale[to_fit]
 
     # Perform the optimization
