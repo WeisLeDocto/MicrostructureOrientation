@@ -1,0 +1,438 @@
+* castem24 plane_stress_bound.dgibi -NCPU8 -NOSWAP -MEM10Go && rm plane_stress_bound.trace
+
+* Use a 2D model
+OPTION 'DIMENSION' 2 ;
+* Use a plane stress model
+OPTION 'MODELISER' 'PLAN' 'CONT' ;
+* Errors are never ignored
+OPTION 'ERREUR' 'FATAL' ;
+* Use quadrialteral elements
+OPTION 'ELEM' 'QUA4' ;
+* Enable parallelization
+OPTION 'PARA' VRAI ;
+* Number of assistants for parallelization
+OPTION 'ASSI' 8 ;
+* Verbose level
+OPTION 'ECHO' 0 ;
+
+* Define the dimensions of the problem
+img_scale = 0.01 ;
+pix_width_to_use = 1100 ;
+pix_height_to_use = 700 ;
+simulation_scale = 0.3636 ;
+
+* Maximum time and number of steps for resolution
+tmax = 100.0 ;
+n_steps = 500 ;
+* Only one out of that many timestamps will be saved
+n_save = 25 ;
+
+* Save envrionment in an xdr file
+save_env = FAUX ;
+* Save the results to vtk files
+save_res = VRAI ;
+* Display stress-strain curve and stress map
+display = FAUX ;
+* Extract results from vtk file to .npy files
+extract_res = VRAI ;
+
+* Parameters managing the communication with Python
+python_path = '/usr/bin/python3.13' ;
+field_exe_path = 'field.py' ;
+tmp_path = 'tmp/' ;
+data_folder = 'data/' ;
+delete_temp = VRAI ;
+raw_results_folder = 'results/raw/' ;
+results_folder = 'results/' ;
+results_exe_path = 'read_values.py' ;
+
+* Names of the data files to read
+sig1_file = ( 'CHAINE' data_folder 'sig1.npy' ) ;
+sig2_file = ( 'CHAINE' data_folder 'sig2.npy' ) ;
+sig3_file = ( 'CHAINE' data_folder 'sig3.npy' ) ;
+ang1_file = ( 'CHAINE' data_folder 'ang1.npy' ) ;
+ang2_file = ( 'CHAINE' data_folder 'ang2.npy' ) ;
+ang3_file = ( 'CHAINE' data_folder 'ang3.npy' ) ;
+dens_file = ( 'CHAINE' data_folder 'dens.npy' ) ;
+disx_file = ( 'CHAINE' data_folder 'disx.npy' ) ;
+disy_file = ( 'CHAINE' data_folder 'disy.npy' ) ;
+
+
+* =============================================================================
+* Nothing more to change past this point
+* =============================================================================
+
+
+* Define a function for projecting a displacement field on an edge
+'DEBPROC' DISP_PROJ x_field*'CHPOINT' y_field*'CHPOINT' edge*'MAILLAGE' 
+          scale*'FLOTTANT' ;
+   disp_x = 'REDU' x_field edge ;
+   disp_y = 'REDU' y_field edge ;
+   disp_x_ux = 'NOMC' 'UX' ( disp_x * scale ) ;
+   disp_y_uy = 'NOMC' 'UY' ( disp_y * scale ) ;
+'FINPROC' disp_x_ux disp_y_uy ;
+
+* Define a function for creating a loading out of a projected displacement
+'DEBPROC' LOADING bc_x*'RIGIDITE' bc_y*'RIGIDITE' disp_x*'CHPOINT' 
+                  disp_y*'CHPOINT' evo*'EVOLUTIO' ;
+   imp_dis_x = 'DEPIMPOSE' bc_x disp_x ;
+   load_x = 'CHARGEMENT' 'DIMP' imp_dis_x evo ;
+   imp_dis_y = 'DEPIMPOSE' bc_y disp_y ;
+   load_y = 'CHARGEMENT' 'DIMP' imp_dis_y evo ;
+'FINPROC' load_x load_y ;
+
+* Define a function for reading a field from a .npy file
+'DEBPROC' READ_NPY py_path*'MOT' exec_path*'MOT' data_path*'MOT' tmp_file*'MOT' 
+                   x_vals_path*'MOT' y_vals_path*'MOT' model*'MMODEL' 
+                   h_pix*'ENTIER' w_pix*'ENTIER' ;
+   'EXTE' ( 'CHAINE' py_path exec_path >2 data_path >2 tmp_file >2 
+                     x_vals_path >2 y_vals_path >2 h_pix >2 w_pix >2 ) ;
+   all_values = 'LIRE' 'CSV' tmp_file ;
+   values = all_values . 1 ;
+   field = 'MANUEL' 'CHML' mo 'REPA' 'field' values 'GRAVITE' ;
+'FINPROC' field ;
+
+
+* Define the four points used for building the mesh
+p0 = 'POINT' 0.0 0.0 'DENS' 1 ;
+px = 'POINT' ( img_scale * pix_width_to_use ) 0.0 'DENS' 1 ;
+py = 'POINT' 0.0 ( img_scale * pix_height_to_use ) 'DENS' 1 ;
+pxy = 'POINT' ( img_scale * pix_width_to_use ) 
+              ( img_scale * pix_height_to_use ) 'DENS' 1 ;
+
+* Build the mesh as a grid between four sides
+vx0 = 'DROIT' ( 'ENTIER' ( pix_width_to_use * simulation_scale ) ) p0 px ;
+vx1 = 'DROIT' ( 'ENTIER' ( pix_width_to_use * simulation_scale ) ) pxy py ;
+vy0 = 'DROIT' ( 'ENTIER' ( pix_height_to_use * simulation_scale ) ) py p0 ;
+vy1 = 'DROIT' ( 'ENTIER' ( pix_height_to_use * simulation_scale ) ) px pxy ;
+sxy = 'DALLER' vx0 vy1 vx1 vy0 ;
+
+
+* Define the names of the material coefficients to pass to the UMAT
+coel = 'MOTS' 'YOUN' 
+              'NU' 
+              'RHO' 
+              'ALPH'
+              'TALP'
+              'TREF'
+              'DIM3'
+              'LAMH' 
+              'LA11' 
+              'LA21' 
+              'LA51'
+              'LA12' 
+              'LA22' 
+              'LA52'
+              'LA13' 
+              'LA23' 
+              'LA53'
+              'LA14' 
+              'LA24' 
+              'LA54'
+              'DENS'
+              'SIG1' 
+              'THE1'
+              'SIG2' 
+              'THE2'
+              'SIG3' 
+              'THE3'
+              'VAL1' 
+              'VAL2' 
+              'VAL3' 
+              'VAL4' ;
+
+* The temperature must be given as a parameter although we do not use it
+params = 'MOTS' 'T' ;
+
+
+* Build the model, that uses a user-defined UMAT as a mechanical model
+mo = 'MODELISER' sxy 
+                 'MECANIQUE' 'ELASTIQUE' 'NON_LINEAIRE' 'UTILISATEUR' 
+                 'QUA4'
+                 'LIB_LOI' 'src/libUmatBehaviour.so' 
+                 'FCT_LOI' 'umatkelvinplanestress_malls'
+                 'PARA_LOI' params
+                 'C_MATERIAU' coel ;
+
+
+* Get the coordinates of the elements at their gravity center
+x_node y_node = 'COORDONNEE' mo ;
+x_grav = 'CHANGER' 'GRAVITE' mo x_node ;
+y_grav = 'CHANGER' 'GRAVITE' mo y_node ;
+
+* Convert the coordinates of the elements to lists of floats
+x_grav = x_grav 'POINT' 'EGSUPE' 0 ;
+x_grav i = 'COORDONNEE' x_grav ;
+y_grav = y_grav 'POINT' 'EGSUPE' 0 ;
+i y_grav = 'COORDONNEE' y_grav ;
+x_grav = 'EXTRAIRE' x_grav 'VALE' ;
+y_grav = 'EXTRAIRE' y_grav 'VALE' ;
+
+* Export the coordinates of the elements to .csv files
+'OPTION' 'SORT' ( 'CHAINE' tmp_path 'x.csv' ) ;
+'SORTIR' 'EXCE' x_grav ;
+'OPTION' 'SORT' ( 'CHAINE' tmp_path 'y.csv' ) ;
+'SORTIR' 'EXCE' y_grav ;
+
+* Define the paths to the temporary files to be created
+x_tmp = ( 'CHAINE' tmp_path 'x.csv' ) ;
+y_tmp = ( 'CHAINE' tmp_path 'y.csv' ) ;
+sig1_tmp = ( 'CHAINE' tmp_path 'sigma1.csv' ) ;
+sig2_tmp = ( 'CHAINE' tmp_path 'sigma2.csv' ) ;
+sig3_tmp = ( 'CHAINE' tmp_path 'sigma3.csv' ) ;
+ang1_tmp = ( 'CHAINE' tmp_path 'theta1.csv' ) ;
+ang2_tmp = ( 'CHAINE' tmp_path 'theta2.csv' ) ;
+ang3_tmp = ( 'CHAINE' tmp_path 'theta3.csv' ) ;
+dens_tmp = ( 'CHAINE' tmp_path 'density.csv' ) ;
+disx_tmp = ( 'CHAINE' tmp_path 'disp_x.csv' ) ;
+disy_tmp = ( 'CHAINE' tmp_path 'disp_y.csv' ) ;
+
+* Read the data files and load them
+sig_field1 = READ_NPY python_path field_exe_path sig1_file sig1_tmp x_tmp y_tmp 
+                      mo pix_height_to_use pix_width_to_use ;
+sig_field2 = READ_NPY python_path field_exe_path sig2_file sig2_tmp x_tmp y_tmp
+                      mo pix_height_to_use pix_width_to_use ;
+sig_field3 = READ_NPY python_path field_exe_path sig3_file sig3_tmp x_tmp y_tmp
+                      mo pix_height_to_use pix_width_to_use ;
+dens_field = READ_NPY python_path field_exe_path dens_file dens_tmp x_tmp y_tmp
+                      mo pix_height_to_use pix_width_to_use ;
+ang_field1 = READ_NPY python_path field_exe_path ang1_file ang1_tmp x_tmp y_tmp
+                      mo pix_height_to_use pix_width_to_use ;
+ang_field2 = READ_NPY python_path field_exe_path ang2_file ang2_tmp x_tmp y_tmp
+                      mo pix_height_to_use pix_width_to_use ;
+ang_field3 = READ_NPY python_path field_exe_path ang3_file ang3_tmp x_tmp y_tmp
+                      mo pix_height_to_use pix_width_to_use ;
+disp_fieldx = READ_NPY python_path field_exe_path disx_file disx_tmp x_tmp 
+                       y_tmp mo pix_height_to_use pix_width_to_use ;
+disp_fieldy = READ_NPY python_path field_exe_path disy_file disy_tmp x_tmp 
+                       y_tmp mo pix_height_to_use pix_width_to_use ;
+
+* Delete the temporary files to keep things clean
+'SI' delete_temp ;
+   'EXTE' ( 'CHAINE' 'rm' x_tmp >2 y_tmp >2 ) ;
+   'EXTE' ( 'CHAINE' 'rm' sig1_tmp >2 sig2_tmp >2 sig3_tmp >2 ) ;
+   'EXTE' ( 'CHAINE' 'rm' dens_tmp >2 ) ;
+   'EXTE' ( 'CHAINE' 'rm' ang1_tmp >2 ang2_tmp >2 ang3_tmp >2 ) ;
+   'EXTE' ( 'CHAINE' 'rm' disx_tmp >2 disy_tmp >2 ) ;
+'FINSI' ;
+
+
+* These variables are required by MFront but have no influence
+xyoun = 1000000.0 ;
+xnu = 0.2 ;
+xrho = 1.0 ;
+xalph = 1.0 ;
+xdim3 = 1.0 ;
+xtalp = 293.0 ;
+xtref = 293.0 ;
+
+* Values of the material parameters
+xlamh = 20.204851101091144 ;
+xlam11 = 1.8550093416455478 ;
+xlam21 = 2.0355585614665035 ;
+xlam51 = 3.94615224147798 ;
+xlam12 = 10.793208044395525 ;
+xlam22 = 2.413354316202385 ;
+xlam52 = 7.695228948453362 ;
+xlam13 = 10.793208044395525 ;
+xlam23 = 2.413354316202385 ;
+xlam53 = 7.695228948453362 ;
+xlam14 = 10.793208044395525 ;
+xlam24 = 2.4133543162023853 ;
+xlam54 = 7.695228948453362 ;
+
+* Values measured from the transparency images of the samples
+xdens = dens_field ;
+xsigstd1 = sig_field1 ;
+xtheta1 = ang_field1 ;
+xsigstd2 = sig_field2 ;
+xtheta2 = ang_field2 ;
+xsigstd3 = sig_field3 ;
+xtheta3 = ang_field3 ;
+
+* Values enabling the higher order models
+xval1 = 1.0 ;
+xval2 = 1.0 ;
+xval3 = 0.0 ;
+xval4 = 0.0 ;
+
+* Associate the numerical values of the parameters to the material model
+ma = 'MATERIAU' mo 
+                'YOUN' xyoun 
+                'NU' xnu 
+                'RHO' xrho 
+                'ALPH' xalph
+                'DIM3' xdim3
+                'TALP' xtalp
+                'TREF' xtref
+                'LAMH' xlamh 
+                'LA11' xlam11 
+                'LA21' xlam21 
+                'LA51' xlam51 
+                'LA12' xlam12 
+                'LA22' xlam22 
+                'LA52' xlam52 
+                'LA13' xlam13 
+                'LA23' xlam23 
+                'LA53' xlam53 
+                'LA14' xlam14 
+                'LA24' xlam24 
+                'LA54' xlam54 
+                'DENS' xdens
+                'SIG1' xsigstd1
+                'THE1' xtheta1
+                'SIG2' xsigstd2
+                'THE2' xtheta2
+                'SIG3' xsigstd3
+                'THE3' xtheta3
+                'VAL1' xval1
+                'VAL2' xval2
+                'VAL3' xval3
+                'VAL4' xval4 ;
+
+
+* Define the number of computation steps and the maximum displacement
+times = 'PROG' 0.0 'PAS' ( tmax / n_steps )  tmax ;
+times_save = 'PROG' 0.0 'PAS' ( n_save * tmax / n_steps )  tmax ;
+load_evol = 'EVOL' 'MANU' 'T' ( 'PROG' 0.0 tmax ) 'F(T)' ( 'PROG' 0.0 1.0 ) ;
+
+* Define the blocked degrees of freedom
+bc_l_x = 'BLOQUE' 'UX'  vy0 ;
+bc_l_y = 'BLOQUE' 'UY'  vy0 ;
+bc_r_x = 'BLOQUE' 'UX'  vy1 ;
+bc_r_y = 'BLOQUE' 'UY'  vy1 ;
+bc_t_x = 'BLOQUE' 'UX'  vx1 ;
+bc_t_y = 'BLOQUE' 'UY'  vx1 ;
+bc_b_x = 'BLOQUE' 'UX'  vx0 ;
+bc_b_y = 'BLOQUE' 'UY'  vx0 ;
+bc_mech = bc_r_x 'ET' bc_r_y 'ET' bc_l_x 'ET' bc_l_y 'ET' 
+          bc_t_x 'ET' bc_t_y 'ET' bc_b_x 'ET' bc_b_y ;
+
+
+* Change the type of the displacement fields
+disp_field_x_nodes = 'CHANGER' 'NOEUD' mo disp_fieldx ;
+disp_field_y_nodes = 'CHANGER' 'NOEUD' mo disp_fieldy ;
+disp_field_x_chpo = 'CHANGER' 'CHPO' mo disp_field_x_nodes ;
+disp_field_y_chpo = 'CHANGER' 'CHPO' mo disp_field_y_nodes ;
+
+* Project displacement field on the edges
+disp_x_r_ux disp_y_r_uy = DISP_PROJ disp_field_x_chpo disp_field_y_chpo vy1 
+                                    img_scale ;
+disp_x_l_ux disp_y_l_uy = DISP_PROJ disp_field_x_chpo disp_field_y_chpo vy0 
+                                    img_scale ;
+disp_x_t_ux disp_y_t_uy = DISP_PROJ disp_field_x_chpo disp_field_y_chpo vx1 
+                                    img_scale ;
+disp_x_b_ux disp_y_b_uy = DISP_PROJ disp_field_x_chpo disp_field_y_chpo vx0 
+                                    img_scale ;
+
+* Create a loading out of the projected displacement
+load_r_x load_r_y = LOADING bc_r_x bc_r_y disp_x_r_ux disp_y_r_uy load_evol ;
+load_l_x load_l_y = LOADING bc_l_x bc_l_y disp_x_l_ux disp_y_l_uy load_evol ;
+load_t_x load_t_y = LOADING bc_t_x bc_t_y disp_x_t_ux disp_y_t_uy load_evol ;
+load_b_x load_b_y = LOADING bc_b_x bc_b_y disp_x_b_ux disp_y_b_uy load_evol ;
+
+* Impose a constant thermal loading, required but has no impact
+temp_field = 'MANUEL' 'CHPO' sxy 1 'T' 0.0 ;
+load_temp = 'CHARGEMENT' 'T' temp_field ;
+
+'OPTION' 'SAUV' 'test' ;
+
+* Store the various arguments in a table
+tab1 = 'TABLE' ;
+tab1 . 'GRANDS_DEPLACEMENTS' = VRAI ;
+tab1 . 'MOVA' = 'MOT' 'RIEN' ;
+tab1 . 'TEMPERATURES' = 'TABLE' ;
+tab1 . 'TEMPERATURES' . 0 = (ZERO mo 'VARINTER') ;
+tab1 . 'CELSIUS' = VRAI ;
+tab1 . 'VARIABLES_INTERNES' = 'TABLE' ;
+tab1 . 'VARIABLES_INTERNES' . 0 = (ZERO mo 'VARINTER') ;
+tab1 . 'BLOCAGES_MECANIQUES' = bc_mech ;
+tab1 . 'MODELE' = mo ;
+tab1 . 'CHARGEMENT' = load_l_x 'ET' load_l_y 'ET' load_r_x 'ET' load_r_y 'ET' 
+                      load_t_x 'ET' load_t_y 'ET' load_b_x 'ET' load_b_y 'ET' 
+                      load_temp ;
+tab1 . 'CARACTERISTIQUES' = ma ;
+tab1 . 'TEMPS_CALCULES' = times ;
+tab1 . 'TEMPS_SAUVES' = times_save ;
+tab1 . 'TEMPS_SAUVEGARDES' = times_save ;
+tab1 . 'PRECISION' = 5.0e-7 ;
+tab1 . 'MAXITERATION' = 100 ;
+tab1 . 'HYPOTHESE_DEFORMATIONS' = QUADRATIQUE ;
+tab1 . 'MES_SAUVEGARDES' = 'TABLE' ;
+tab1 . 'MES_SAUVEGARDES' . 'DEFTO' = VRAI ;
+
+* Start the procedure actually running the computation
+PASAPAS TAB1 ;
+
+
+* Display the maximum stress and strain values for each step
+nb = ('DIMENSION' tab1 . 'CONTRAINTES') '-' 1 ;
+psig = 'PROG' ;
+peto = 'PROG' ;
+'REPETER' i nb ;
+   s = tab1 . 'CONTRAINTES' . &i ;
+   d = tab1 . 'DEFORMATIONS' . &i ;
+   psig = psig 'ET' ('PROG' ('MAXIMUM' ('EXCO' s 'SMXX'))) ;
+   peto = peto 'ET' ('PROG' ('MAXIMUM' ('EXCO' d 'EPXX'))) ;
+'FIN' i ;
+
+
+* Display the stress-strain curve on the x axis
+'SI' display ;
+   evsig = 'EVOL' 'ROUG' 'MANU' 'EPXX' peto 'SMXX' psig;
+   'DESSIN' evsig ;
+'FINSI' ;
+
+* Display a visual representation of the stress on the sample
+'SI' display ;
+   'TRACER' mo tab1 . contraintes . nb ;
+'FINSI' ;
+
+
+* Express the stress at the gravity center
+'REPETER' i ('DIME' tab1 . 'CONTRAINTES') ;
+   idx = &i '-' 1 ;
+   tab1 . 'CONTRAINTES' . idx = 'CHANGER' 'GRAVITE' mo 
+                                          tab1 . 'CONTRAINTES' . idx ;
+'FIN' i;
+
+* Express the strain at the gravity center
+'REPETER' i ('DIME' tab1 . 'DEFORMATIONS') ;
+   idx = &i '-' 1 ;
+   tab1 . 'DEFORMATIONS' . idx = 'CHANGER' 'GRAVITE' mo 
+                                           tab1 . 'DEFORMATIONS' . idx ;
+'FIN' i;
+
+
+* Save the whole environment to a .xdr file
+'SI' save_env ;
+   'OPTION' 'SAUV' 'XDR' 'result.xdr' ;
+   'SAUVER' mo tab1 ;
+'FINSI' ;
+
+
+* Save the displacement, stress, and strain to .vtk files
+'SI' save_res ;
+   'OPTION' 'SORT' ( 'CHAINE' raw_results_folder 'result_disp' ) ;
+   'SORTIR' 'VTK' sxy tab1 . 'DEPLACEMENTS' . nb 'FORM' 'AUTO' ;
+   'OPTION' 'SORT' ( 'CHAINE' raw_results_folder 'result_strain' ) ;
+   'SORTIR' 'VTK' sxy tab1 . 'DEFORMATIONS' . nb 'FORM' 'AUTO' ;
+   'OPTION' 'SORT' ( 'CHAINE' raw_results_folder 'result_stress' ) ;
+   'SORTIR' 'VTK' sxy tab1 . 'CONTRAINTES' . nb 'FORM' 'AUTO' ;
+'FINSI' ;
+
+'SI' extract_res ;
+   'EXTE' ( 'CHAINE' python_path results_exe_path >2 
+          ( 'CHAINE' raw_results_folder 'result_strain.0001.vtu' ) >2 
+          ( 'CHAINE' results_folder 'strain_xx.npy' ) >2
+          ( 'CHAINE' results_folder 'strain_yy.npy' ) >2
+          ( 'CHAINE' results_folder 'strain_xy.npy' ) >2 ) ;
+   'EXTE' ( 'CHAINE' python_path results_exe_path >2 
+          ( 'CHAINE' raw_results_folder 'result_stress.0001.vtu' ) >2 
+          ( 'CHAINE' results_folder 'stress_xx.npy' ) >2
+          ( 'CHAINE' results_folder 'stress_yy.npy' ) >2
+          ( 'CHAINE' results_folder 'stress_xy.npy' ) >2 ) ;
+'FINSI' ;
+
+'FIN' ;
+

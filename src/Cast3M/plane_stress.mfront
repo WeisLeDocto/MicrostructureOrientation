@@ -1,0 +1,239 @@
+// mfront -I $(pwd)/extra-headers -I /usr/include/eigen3 --interface=castem21 --obuild plane_stress.mfront
+
+@DSL Default;
+@Behaviour KelvinPlaneStress;
+
+@Author Antoine Weisrock;
+@Date 18/02/2025;
+
+// The material properties lambda, to be determined for the material
+@MaterialProperty stress lamh;
+@MaterialProperty stress lam11;
+@MaterialProperty stress lam21;
+@MaterialProperty stress lam51;
+@MaterialProperty stress lam12;
+@MaterialProperty stress lam22;
+@MaterialProperty stress lam52;
+@MaterialProperty stress lam13;
+@MaterialProperty stress lam23;
+@MaterialProperty stress lam53;
+@MaterialProperty stress lam14;
+@MaterialProperty stress lam24;
+@MaterialProperty stress lam54;
+
+// The local microstructure properties, as measured from transparency images
+@MaterialProperty real density;
+@MaterialProperty real sigstd1;
+@MaterialProperty real theta1;
+@MaterialProperty real sigstd2;
+@MaterialProperty real theta2;
+@MaterialProperty real sigstd3;
+@MaterialProperty real theta3;
+
+// Multiplicative coefficients for the various orders of the model
+@MaterialProperty real val1;
+@MaterialProperty real val2;
+@MaterialProperty real val3;
+@MaterialProperty real val4;
+
+// The lambda values should never be negative
+@PhysicalBounds lamh in [0.0: *[;
+@PhysicalBounds lam11 in [0.0: *[;
+@PhysicalBounds lam21 in [0.0: *[;
+@PhysicalBounds lam51 in [0.0: *[;
+@PhysicalBounds lam12 in [0.0: *[;
+@PhysicalBounds lam22 in [0.0: *[;
+@PhysicalBounds lam52 in [0.0: *[;
+@PhysicalBounds lam13 in [0.0: *[;
+@PhysicalBounds lam23 in [0.0: *[;
+@PhysicalBounds lam53 in [0.0: *[;
+@PhysicalBounds lam14 in [0.0: *[;
+@PhysicalBounds lam24 in [0.0: *[;
+@PhysicalBounds lam54 in [0.0: *[;
+
+// Bounds on the values of the microstructure properties
+@PhysicalBounds density in [0.0: 1.0];
+@PhysicalBounds sigstd1 in [0.0: *[;
+@Bounds theta1 in [-3.15: 3.15];
+@PhysicalBounds sigstd2 in [0.0: *[;
+@Bounds theta2 in [-3.15: 3.15];
+@PhysicalBounds sigstd3 in [0.0: *[;
+@Bounds theta3 in [-3.15: 3.15];
+
+// Modelling in plane stress, using the Hencky strain measurement
+@ModellingHypothesis PlaneStress;
+@StrainMeasure Hencky;
+
+// Necessary for working in plane stress in MFront
+@StateVariable<PlaneStress> real etozz;
+PlaneStress::etozz.setGlossaryName("AxialStrain");
+
+// 3D stiffness tensor, order 1
+@LocalVariable st2tost2<3u, real> stiffness_1;
+// 3D stiffness tensor, order 2
+@LocalVariable st2tost2<3u, real> stiffness_2;
+// 3D stiffness tensor, order 3
+@LocalVariable st2tost2<3u, real> stiffness_3;
+// 3D stiffness tensor, order 4
+@LocalVariable st2tost2<3u, real> stiffness_4;
+// 3D stiffness tensor, order 5
+@LocalVariable st2tost2<3u, real> stiffness_5;
+// Final 3D stiffness tensor
+@LocalVariable st2tost2<3u, real> stiffness_tot;
+// Object storing the eigenvectors of the 2D strain tensor (still 3D in MFront)
+@LocalVariable tmatrix<3u, 3u, real> strain_eigenvectors;
+// Object storing the eigenvalues of the 2D strain tensor (still 3D in MFront)
+@LocalVariable tvector<3u, real> strain_eigenvalues;
+// 3D stiffness tensor after the homogenization is complete
+@LocalVariable st2tost2<3u, real> homogenized;
+// Variable storing the 2D strain tensor
+@LocalVariable stensor<2u, strain> strain_2d;
+// Variable storing the 3D strain tensor, with the missing values completed
+@LocalVariable stensor<3u, strain> strain_3d;
+// The 3D stress tensor computed from the homogenized stiffness and the strain
+@LocalVariable stensor<3u, stress> sig_3d;
+// The 3D tangent operator, to be converted to 2D
+@LocalVariable st2tost2<3u, real> Dt_3d;
+
+// File storing the actual mathematical computations
+@Includes{
+  #include "TFEL/Math/KelvinDecomposition.hxx"
+}
+
+
+@Integrator{
+
+  // Get the eigenvectors and eigenvalues of the strain tensor
+  std::tie(strain_eigenvalues, strain_eigenvectors) = 
+    eval(eto + deto).computeEigenVectors(stensor<3u, real>::DESCENDING);
+  
+  // Compute the angle of the main eigenvector of the strain
+  real theta_load = 
+    atan(strain_eigenvectors(1, 0) / strain_eigenvectors(0, 0));
+  
+  // Organize the values in arrays for convenience
+  const real sigstd[3] = {sigstd1, sigstd2, sigstd3};
+  const real theta[3] = {theta1, theta2, theta3};
+  const std::array<real, 5> vals = {val1, val2, val3, val4, 0.0};
+  const std::array<real, 5> lam1 = {lam11, lam12, lam13, lam14, lam14};
+  const std::array<real, 5> lam2 = {lam21, lam22, lam23, lam24, lam24};
+  const std::array<real, 5> lam5 = {lam51, lam52, lam53, lam54, lam54};
+  std::array<st2tost2<3u, real>, 5> stiffnesses = {stiffness_1, stiffness_2, 
+                                                   stiffness_3, stiffness_4, 
+                                                   stiffness_5};
+  
+  // Initialize the stiffness values with zeros
+  for (size_t k = 0; k < 5; k++){
+    for (int i = 0; i < 6; i++){
+      for(int j = 0; j < 6; j++){
+        stiffnesses[k](i, j) = 0.0;
+      }
+    }
+  }
+  
+  // Pre-compute the valid orders
+  std::vector<size_t> valid_orders;
+  for (size_t j = 0; j < vals.size(); ++j) {
+    if (vals[j] > 1.0e-12) valid_orders.push_back(j);
+  }
+  
+  // Pre-compute the valid layers
+  std::vector<size_t> valid_layers;
+  for (size_t i = 0; i < 3; ++i) {
+    // A standard deviation too low indicates that a layer was not detected
+    if (sigstd[i] > 0.01 || i < 1) valid_layers.push_back(i);
+  }
+  
+  // Pre-compute the m values
+  real m;
+  std::array<real, 3> m_vals = {1.0, 1.0, 1.0};
+  for (size_t i : valid_layers) {
+    // Compute the integration factor as a function of the angle between the
+    // load and the fibers
+    m = cos(2.0 * (theta_load - theta[i]));
+    // Correct by the factor to account for anisotropy in the strain
+    if (abs(strain_eigenvalues(0)) + abs(strain_eigenvalues(1)) > 1.0e-12) {
+      m *= (abs(strain_eigenvalues(0) - strain_eigenvalues(1))) / 
+         (abs(strain_eigenvalues(0)) + abs(strain_eigenvalues(1)));
+    }
+    m_vals[i] = m;
+  }
+  
+  // Iterate over up to three tissue layers
+  for (size_t i : valid_layers) {
+
+    // Iterate over the valid orders of the model
+    for (size_t j : valid_orders) {
+
+      /// Use the relevant function for computing the homogenized tensor,
+      /// depending on the value of m
+      if (abs(m_vals[i]) < 0.01) {
+        homogenized = tensor_exponential(zero_m_approximation(
+          lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], sigstd[i],
+          m_vals[i], true));
+      }
+      else {
+        homogenized = pow_1_over_m(kelvin_integrated_tensor(
+          lamh, lam1[j], lam2[j], lam5[j], lam5[j], lam5[j], sigstd[i],
+          m_vals[i], true), m_vals[i]);
+      }
+
+      // Rotate the homogenized tensor to align it with the fibers
+      stiffnesses[j] += rotate(homogenized, theta[i]);
+      
+    }
+  }
+  
+  // The final stiffness tensor is averaged over the detected layers
+  for (size_t j : valid_orders) {
+    stiffnesses[j] = stiffnesses[j] / valid_layers.size();
+  }
+  
+  // Build the 3D strain tensor from the 2D one
+  strain_2d = eval(eto + deto);
+  strain_3d(0) = strain_2d(0);
+  strain_3d(1) = strain_2d(1);
+  strain_3d(3) = strain_2d(3);
+  strain_3d(4) = 0.0;
+  strain_3d(5) = 0.0;
+  
+  // Calculate the zz strain value that satisfies the plane stress hypothesis
+  strain_3d(2) = 0.0;
+  strain_3d(2) = calc_ezz_plane_stress(
+      stiffnesses, 
+      strain_3d, 
+      vals, 
+      std::max(strain_3d(0), std::max(strain_3d(1), strain_3d(3))) / 1000.0,
+      100);
+  
+  // Use the ezz value just determined to compute the final stiffness tensor
+  stiffness_tot = calc_stiffness(stiffnesses, strain_3d, vals);
+  
+  // Compute the final 3D stress tensor
+  sig_3d = density * stiffness_tot * strain_3d;
+  
+  // Only extract the components of interest for the 2D model
+  sig(0) = sig_3d(0);
+  sig(1) = sig_3d(1);
+  sig(2) = sig_3d(2);
+  sig(3) = sig_3d(3);
+  
+}
+
+
+@TangentOperator {
+  
+  // Compute the 3D tangent operator and extract the 2D components
+  Dt_3d = density * stiffness_tot;
+  Dt(0, 0) = Dt_3d(0, 0);
+  Dt(0, 1) = Dt_3d(0, 1);
+  Dt(0, 2) = Dt_3d(0, 3);
+  Dt(1, 0) = Dt_3d(1, 0);
+  Dt(1, 1) = Dt_3d(1, 1);
+  Dt(1, 2) = Dt_3d(1, 3);
+  Dt(2, 0) = Dt_3d(3, 0);
+  Dt(2, 1) = Dt_3d(3, 1);
+  Dt(2, 2) = Dt_3d(3, 3);
+  
+}
+
