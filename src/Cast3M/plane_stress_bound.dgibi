@@ -44,7 +44,8 @@ data_folder = 'data/' ;
 delete_temp = VRAI ;
 raw_results_folder = 'results/raw/' ;
 results_folder = 'results/' ;
-results_exe_path = 'read_values.py' ;
+results_elt_exe_path = 'read_values_elt.py' ;
+results_nodes_exe_path = 'read_values_nodes.py' ;
 
 * Names of the data files to read
 sig1_file = ( 'CHAINE' data_folder 'sig1.npy' ) ;
@@ -422,16 +423,20 @@ peto = 'PROG' ;
 'FINSI' ;
 
 'SI' extract_res ;
-   'EXTE' ( 'CHAINE' python_path results_exe_path >2 
+   'EXTE' ( 'CHAINE' python_path results_elt_exe_path >2
           ( 'CHAINE' raw_results_folder 'result_strain.0001.vtu' ) >2 
           ( 'CHAINE' results_folder 'strain_xx.npy' ) >2
           ( 'CHAINE' results_folder 'strain_yy.npy' ) >2
           ( 'CHAINE' results_folder 'strain_xy.npy' ) >2 ) ;
-   'EXTE' ( 'CHAINE' python_path results_exe_path >2 
+   'EXTE' ( 'CHAINE' python_path results_elt_exe_path >2
           ( 'CHAINE' raw_results_folder 'result_stress.0001.vtu' ) >2 
           ( 'CHAINE' results_folder 'stress_xx.npy' ) >2
           ( 'CHAINE' results_folder 'stress_yy.npy' ) >2
           ( 'CHAINE' results_folder 'stress_xy.npy' ) >2 ) ;
+   'EXTE' ( 'CHAINE' python_path results_nodes_exe_path >2
+          ( 'CHAINE' raw_results_folder 'result_disp.0001.vtu' ) >2
+          ( 'CHAINE' results_folder 'disp_x.npy' ) >2
+          ( 'CHAINE' results_folder 'disp_y.npy' ) >2 ) ;
 'FINSI' ;
 
 'FIN' ;
