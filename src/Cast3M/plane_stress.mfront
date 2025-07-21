@@ -80,10 +80,6 @@ PlaneStress::etozz.setGlossaryName("AxialStrain");
 @LocalVariable st2tost2<3u, real> stiffness_5;
 // Final 3D stiffness tensor
 @LocalVariable st2tost2<3u, real> stiffness_tot;
-// Object storing the eigenvectors of the 2D strain tensor (still 3D in MFront)
-@LocalVariable tmatrix<3u, 3u, real> strain_eigenvectors;
-// Object storing the eigenvalues of the 2D strain tensor (still 3D in MFront)
-@LocalVariable tvector<3u, real> strain_eigenvalues;
 // 3D stiffness tensor after the homogenization is complete
 @LocalVariable st2tost2<3u, real> homogenized;
 // Variable storing the 2D strain tensor
@@ -103,14 +99,15 @@ PlaneStress::etozz.setGlossaryName("AxialStrain");
 
 @Integrator{
 
-  // Get the eigenvectors and eigenvalues of the strain tensor
-  std::tie(strain_eigenvalues, strain_eigenvectors) = 
-    eval(eto + deto).computeEigenVectors(stensor<3u, real>::DESCENDING);
-  
+  // Read the strain values from Cast3M
+  strain_2d = eval(eto + deto);
+  const real exx = strain_2d(0);
+  const real eyy = strain_2d(1);
+  const real exy = strain_2d(3);
+
   // Compute the angle of the main eigenvector of the strain
-  real theta_load = 
-    atan(strain_eigenvectors(1, 0) / strain_eigenvectors(0, 0));
-  
+  const real theta_load = 0.5 * atan2(2.0 * exy, exx - eyy);
+
   // Organize the values in arrays for convenience
   const real sigstd[3] = {sigstd1, sigstd2, sigstd3};
   const real theta[3] = {theta1, theta2, theta3};
@@ -152,9 +149,11 @@ PlaneStress::etozz.setGlossaryName("AxialStrain");
     // load and the fibers
     m = cos(2.0 * (theta_load - theta[i]));
     // Correct by the factor to account for anisotropy in the strain
-    if (abs(strain_eigenvalues(0)) + abs(strain_eigenvalues(1)) > 1.0e-12) {
-      m *= (abs(strain_eigenvalues(0) - strain_eigenvalues(1))) / 
-         (abs(strain_eigenvalues(0)) + abs(strain_eigenvalues(1)));
+    const real denom = 2.0 * pow(exx * exx + eyy * eyy - exx * eyy +
+                                 3.0 * exy * exy, 1.5);
+    if (abs(denom) > 1.0e-12) {
+      m *= (2.0 * exx * exx + 2.0 * eyy * eyy - 5.0 * exx * eyy +
+            9.0 * exy * exy) * (exx + eyy) / denom;
     }
     m_vals[i] = m;
   }
@@ -190,10 +189,9 @@ PlaneStress::etozz.setGlossaryName("AxialStrain");
   }
   
   // Build the 3D strain tensor from the 2D one
-  strain_2d = eval(eto + deto);
-  strain_3d(0) = strain_2d(0);
-  strain_3d(1) = strain_2d(1);
-  strain_3d(3) = strain_2d(3);
+  strain_3d(0) = exx;
+  strain_3d(1) = eyy;
+  strain_3d(3) = exy;
   strain_3d(4) = 0.0;
   strain_3d(5) = 0.0;
   
@@ -236,4 +234,3 @@ PlaneStress::etozz.setGlossaryName("AxialStrain");
   Dt(2, 2) = Dt_3d(3, 3);
   
 }
-

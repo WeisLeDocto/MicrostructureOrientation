@@ -471,12 +471,6 @@ void calc_stress(double exx,
                  double* syy,
                  double* sxy) {
 
-  /// Compute eigenvalues of the strain tensor
-  const double trace = exx + eyy;
-  const double sqrt_term = sqrt((exx - eyy) * (exx - eyy) + 4.0 * exy * exy);
-  const double lambda1 = (trace + sqrt_term) * 0.5;
-  const double lambda2 = (trace - sqrt_term) * 0.5;
-
   /// Compute the angle of the first eigenvector
   double theta_load;
   if (abs(exy) < 1e-12 && abs(exx - eyy) < 1e-12) {
@@ -526,8 +520,11 @@ void calc_stress(double exx,
     /// load and the fibers
     double m = cos(2.0 * (theta_load - theta[i]));
     /// Correct by the factor to account for anisotropy in the strain
-    if (abs(lambda1) + abs(lambda2) > 1.0e-12) {
-      m *= (abs(lambda1 - lambda2)) / (abs(lambda1) + abs(lambda2));
+    const double denom = 2.0 * pow(exx * exx + eyy * eyy - exx * eyy +
+                                   3.0 * exy * exy, 1.5);
+    if (abs(denom) > 1.0e-12) {
+      m *= (2.0 * exx * exx + 2.0 * eyy * eyy - 5.0 * exx * eyy +
+            9.0 * exy * exy) * (exx + eyy) / denom;
     }
     m_vals[i] = m;
   }
