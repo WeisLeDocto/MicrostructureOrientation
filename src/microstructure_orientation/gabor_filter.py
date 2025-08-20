@@ -48,6 +48,8 @@ def _process_gabor_gpu(image: np.ndarray,
                                      kernel,
                                      mode='same',
                                      boundary='symm').astype(cp.complex64)
+        # Normalize by the norm of the filter
+        conv /= cp.linalg.norm(cp.sum(kernel))
         res[:, :, i] = cp.sqrt(conv.real ** 2 + conv.imag ** 2)
 
     # Return a numpy array for saving on disk
@@ -75,7 +77,7 @@ def apply_gabor_filter(src_path: Path,
     t0 = time()
     kernels = {i: gpu_filters.gabor_kernel(frequency=1 / filter_wavelength,
                                            theta=np.pi / 2 - ang,
-                                           n_stds=3,
+                                           n_stds=2,
                                            offset=0,
                                            bandwidth=1,
                                            dtype=cp.complex64,
@@ -96,24 +98,13 @@ def apply_gabor_filter(src_path: Path,
                          maxinterval=0.01,
                          position=0,
                          leave=True):
+        # Load the image, normalize it and invert the intensity
         img_path: Path
-
-        # Apply the filters a first time, and keep only the response intensity
         img = np.load(img_path)
+        img = 1.0 - (img - img.min()) / (img.max() - img.min())
+
+        # Apply the Gabor filters and save the resulting array
         res = _process_gabor_gpu(img, kernels, NB_ANGLES)
-        intensity = (np.mean(res, axis=2) /
-                     np.maximum(img, np.percentile(img, 2)))
-
-        # Smoothen the intensity response to improve the contrast
-        intensity[intensity < np.percentile(intensity, 2)] = np.percentile(
-          intensity, 2)
-        intensity[intensity > np.percentile(intensity, 98)] = np.percentile(
-          intensity, 98)
-        intensity = ((intensity - intensity.min()) /
-                     (intensity.max() - intensity.min())).astype('float64')
-
-        # Apply the filter a second time, and this time save the result as is
-        res = _process_gabor_gpu(intensity, kernels, NB_ANGLES)
         np.save(dest_path / img_path.name, res)
 
     # Free up some GPU memory as the kernels are no longer needed
