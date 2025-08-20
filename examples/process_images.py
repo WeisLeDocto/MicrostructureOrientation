@@ -28,7 +28,7 @@ if __name__ == '__main__':
     base_path = Path('/home/weis/Desktop/HDR/7LX1_4')
     n_images = 8
     nb_ang = 45
-    nb_pix = 15
+    nb_pix = 25
 
     # Location of the various folders where to store the results
     images_path = base_path / 'images'
