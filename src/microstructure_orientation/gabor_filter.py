@@ -47,7 +47,8 @@ def _process_gabor_gpu(image: np.ndarray,
         conv = gpu_signal.convolve2d(img_gpu,
                                      kernel,
                                      mode='same',
-                                     boundary='symm').astype(cp.complex64)
+                                     boundary='fill',
+                                     fillvalue=0).astype(cp.complex64)
         # Normalize by the norm of the filter
         conv /= cp.linalg.norm(cp.sum(kernel))
         res[:, :, i] = cp.sqrt(conv.real ** 2 + conv.imag ** 2)
