@@ -1,3 +1,3 @@
 # coding: utf-8
 
-from .peak_detection import detect_peaks
+from .peak_detection import detect_peaks, _find_peaks_gpu
