@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
     plt.figure()
     ax = plt.gca()
-    im = plt.imshow(angles[..., 0], cmap='twilight')
+    im = plt.imshow(angles[..., 0], cmap='twilight', clim=(0, 180))
     plt.xticks([])
     plt.yticks([])
     divider = make_axes_locatable(ax)
@@ -213,7 +213,7 @@ if __name__ == '__main__':
 
     plt.figure()
     ax = plt.gca()
-    im = plt.imshow(angles[..., 1], cmap='twilight')
+    im = plt.imshow(angles[..., 1], cmap='twilight', clim=(0, 180))
     plt.xticks([])
     plt.yticks([])
     divider = make_axes_locatable(ax)
