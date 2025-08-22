@@ -322,7 +322,30 @@ if __name__ == '__main__':
     plt.yticks([])
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="5%", pad=0.1)
-    plt.colorbar(im, cax=cax, label='Anisotropy')
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
 
     plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/7LX1_3/anisotropy.svg', dpi=300)
+                'figures/7LX1_3/fractional_anisotropy.svg', dpi=300)
+
+    plt.figure()
+    plt.hist(angles[..., 0].flatten(),
+             weights=np.full_like(angles[..., 0].flatten(),
+                                  1 / (angles.shape[0] * angles.shape[1])),
+             bins=45)
+    plt.xlabel('Angle (degrees)')
+    plt.ylabel('Fraction of values')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/angle_distribution.svg', dpi=300)
+
+    plt.figure()
+    plt.hist(angles[..., 0].flatten(),
+             weights=data.flatten() / np.sum(data),
+             bins=45)
+    plt.xlabel('Angle (degrees)')
+    plt.ylabel('Fraction of values (weighted)')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/weighted_angle_distribution.svg', dpi=300)
+
+    plt.show()
