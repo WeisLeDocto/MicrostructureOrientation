@@ -24,7 +24,7 @@ if __name__ == '__main__':
     valid_mask = np.abs(denominator) > 1.0e-10
     fractional_anisotropy[valid_mask] = ((l1[valid_mask] - l2[valid_mask]) /
                                          denominator[valid_mask])
-    angle = np.rad2deg(0.5 * np.arctan2(2 * arc, acc - arr))
+    angle = np.rad2deg(0.5 * np.arctan2(2 * arc, acc - arr)) % 180
 
     plt.figure()
     plt.imshow(img, cmap='magma')
