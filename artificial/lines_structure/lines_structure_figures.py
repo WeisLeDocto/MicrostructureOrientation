@@ -13,6 +13,8 @@ if __name__ == '__main__':
                   'artificial/lines.npy')
     sigma = 10
 
+    plt.rcParams['font.family'] = 'serif'
+
     img = (img - img.min()) / (img.max() - img.min())
 
     arr, arc, acc = structure_tensor(img, sigma=sigma, mode='constant', cval=0,
@@ -54,5 +56,4 @@ if __name__ == '__main__':
                 'artificial/lines_structure/fractional_anisotropy.svg',
                 dpi=300)
 
-    plt.show()
     plt.close('all')

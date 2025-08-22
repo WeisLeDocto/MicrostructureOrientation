@@ -13,6 +13,8 @@ if __name__ == '__main__':
                   'artificial/cross.npy')
     sigma = 10
 
+    plt.rcParams['font.family'] = 'serif'
+
     img = (img - img.min()) / (img.max() - img.min())
 
     arr, arc, acc = structure_tensor(img, sigma=sigma, mode='constant', cval=0,
