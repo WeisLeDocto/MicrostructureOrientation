@@ -58,19 +58,11 @@ if __name__ == '__main__':
         res_gpu[:, :, i] = cp.sqrt(conv.real ** 2 + conv.imag ** 2)
 
     res = cp.asnumpy(res_gpu)
-    var = np.sqrt(np.sum(np.power(res - np.mean(res, axis=-1)[..., np.newaxis],
-                                  2), axis=-1))
 
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()
 
     angles, params = _find_peaks_gpu(res, np.linspace(0, 180, NB_ANGLES))
-
-    plt.figure()
-    plt.imshow(params[..., 0], cmap='magma')
-    plt.xticks([])
-    plt.yticks([])
-    plt.colorbar()
 
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()

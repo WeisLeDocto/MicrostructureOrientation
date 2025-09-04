@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     img = np.load('/home/weis/Codes/MicrostructureOrientation/'
                   'artificial/circles.npy')
-    filter_wavelength = 100
+    filter_wavelength = 60
     sigma_x = 12
     sigma_y = 30
 
@@ -58,8 +58,6 @@ if __name__ == '__main__':
         res_gpu[:, :, i] = cp.sqrt(conv.real ** 2 + conv.imag ** 2)
 
     res = cp.asnumpy(res_gpu)
-    var = np.sqrt(np.sum(np.power(res - np.mean(res, axis=-1)[..., np.newaxis],
-                                  2), axis=-1))
 
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()
