@@ -64,32 +64,26 @@ def periodic_gauss_gpu(x: cp.ndarray,
         for i in range(x.shape[0]):
             array_out[i] = (
                 b +
-                a_1 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_1,
-                                                    math.pi) -
-                                          math.pi / 2) / sigma_1, 2)))
+                a_1 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_1 % math.pi)
+                                          - math.pi / 2) / sigma_1, 2)))
     elif n == 2:
         for i in range(x.shape[0]):
             array_out[i] = (
                 b +
-                a_1 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_1,
-                                                    math.pi) -
-                                          math.pi / 2) / sigma_1, 2)) +
-                a_2 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_2,
-                                                    math.pi) -
-                                          math.pi / 2) / sigma_2, 2)))
+                a_1 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_1 % math.pi)
+                                          - math.pi / 2) / sigma_1, 2)) +
+                a_2 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_2 % math.pi)
+                                          - math.pi / 2) / sigma_2, 2)))
     elif n == 3:
         for i in range(x.shape[0]):
             array_out[i] = (
                 b +
-                a_1 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_1,
-                                                    math.pi) -
-                                          math.pi / 2) / sigma_1, 2)) +
-                a_2 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_2,
-                                                    math.pi) -
-                                          math.pi / 2) / sigma_2, 2)) +
-                a_3 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_3,
-                                                    math.pi) -
-                                          math.pi / 2) / sigma_3, 2)))
+                a_1 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_1 % math.pi)
+                                          - math.pi / 2) / sigma_1, 2)) +
+                a_2 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_2 % math.pi)
+                                          - math.pi / 2) / sigma_2, 2)) +
+                a_3 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_3 % math.pi)
+                                          - math.pi / 2) / sigma_3, 2)))
     return array_out
 
 
