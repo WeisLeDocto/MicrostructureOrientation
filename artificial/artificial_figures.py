@@ -18,8 +18,8 @@ if __name__ == '__main__':
     np.save('./lines_intensity.npy', img)
 
     for x, y in product(range(1000), repeat=2):
-        img[x, y] = max(np.sin((x + y) / (4 * np.pi)),
-                        np.sin((x - y) / (4 * np.pi)))
+        img[x, y] = max(np.sin((x + y) / (4 * np.pi)) ** 3,
+                        np.sin((x - y) / (4 * np.pi)) ** 3)
 
     np.save('./cross.npy', img)
 
