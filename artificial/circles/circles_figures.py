@@ -205,5 +205,36 @@ if __name__ == '__main__':
     plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
                 'artificial/circles/angular_distributions.svg', dpi=300)
 
-    plt.show()
+    plt.figure()
+    rows, cols = np.indices(img.shape)
+    phi = np.arctan2(rows - 499, cols - 499)
+    phi = np.rad2deg(np.mod(phi + np.pi / 2, np.pi))
+
+    plt.figure()
+    plt.hist(phi.flatten(), bins=45,
+             weights=np.full_like(angles[..., 0].flatten(),
+                                  1 / (angles.shape[0] * angles.shape[1])))
+    plt.xlabel('Angle (degrees)')
+    plt.ylabel('Fraction of values')
+    plt.ylim((0, 0.05))
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'artificial/circles/theoretical_distribution.svg', dpi=300)
+
+    plt.figure()
+    rows, cols = np.indices(img.shape)
+    phi = np.arctan2(rows - 499, cols - 499)
+    phi = np.rad2deg(np.mod(phi + np.pi / 2, np.pi))
+
+    plt.figure()
+    plt.hist(phi.flatten(), bins=45,
+             weights=img.flatten() / np.sum(img))
+    plt.xlabel('Angle (degrees)')
+    plt.ylabel('Fraction of values (weighted)')
+    plt.ylim((0, 0.05))
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'artificial/circles/theoretical_distribution_weighted.svg',
+                dpi=300)
+
     plt.close('all')
