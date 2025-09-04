@@ -90,9 +90,9 @@ if __name__ == '__main__':
     # img = np.load('/home/weis/Desktop/HDR/7LX1_2/hdr/0_1714.npy')
     # img = np.load('/home/weis/Desktop/HDR/7LX1/hdr/2_3260.npy')
     img = np.load('/home/weis/Desktop/HDR/7LX1_3/hdr/7_04362.npy')
-    filter_wavelength = 100
+    filter_wavelength = 60
     sigma_x = 4
-    sigma_y = 10
+    sigma_y = 20
 
     img = 1.0 - (img - img.min()) / (img.max() - img.min())
 
