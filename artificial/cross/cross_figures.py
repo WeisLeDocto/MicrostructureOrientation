@@ -19,9 +19,9 @@ if __name__ == '__main__':
 
     img = np.load('/home/weis/Codes/MicrostructureOrientation/'
                   'artificial/cross.npy')
-    filter_wavelength = 100
-    sigma_x = 12
-    sigma_y = 30
+    filter_wavelength = 60
+    sigma_x = 7
+    sigma_y = 12
 
     img = (img - img.min()) / (img.max() - img.min())
 
@@ -92,6 +92,55 @@ if __name__ == '__main__':
 
     # Free up the GPU memory
     mem_pool.free_all_blocks()
+
+    mem_pool = cp.get_default_memory_pool()
+
+    ang = cp.nan_to_num(
+        cp.deg2rad(cp.asarray(angles, dtype=cp.float32))[..., cp.newaxis])
+    amp = cp.nan_to_num(cp.asarray(np.stack((param[..., 1],
+                                             param[..., 3],
+                                             param[..., 5]),
+                                            axis=2)[..., np.newaxis],
+                                   dtype=cp.float32))
+    sig = cp.nan_to_num(cp.asarray(np.stack((param[..., 0],
+                                             param[..., 2],
+                                             param[..., 4]),
+                                            axis=2)[..., np.newaxis],
+                                   dtype=cp.float32))
+    amp[sig <= 0] = 0
+    sig[sig <= 0] = 1.0e-5
+
+    sign_3 = cp.tile(cp.linspace(0, cp.pi, NB_ANGLES),
+                     (img.shape[0], img.shape[1], 3, 1))
+    sign_3 = amp * cp.exp(-cp.power((cp.mod(sign_3 + cp.pi / 2 - ang, cp.pi)
+                                     - cp.pi / 2) / sig, 2))
+    signal = cp.sum(sign_3, axis=2)
+
+    del ang, sig
+    amp = cp.squeeze(amp)
+
+    signal_sum = cp.sum(signal, axis=2)
+    amp_norm = amp / signal_sum[..., cp.newaxis]
+
+    # signal_norm = cp.nan_to_num(signal / signal_sum[..., cp.newaxis])
+    del signal
+    sign_3_norm = cp.nan_to_num(sign_3 /
+                                signal_sum[..., cp.newaxis, cp.newaxis])
+    del sign_3, signal_sum
+    layer_score = cp.sum(sign_3_norm, axis=3)
+
+    amp_norm = cp.asnumpy(amp_norm)
+    amp = cp.asnumpy(amp)
+    layer_score = cp.asnumpy(layer_score)
+
+    mem_pool.free_all_blocks()
+
+    low_thresh = np.percentile(amp, 15, axis=(0, 1))[np.newaxis, np.newaxis, :]
+    low_thresh = np.nan_to_num(low_thresh)
+    thresh = 1 / (1 + np.exp(-10 * (amp - low_thresh)))
+    amp_norm *= thresh
+
+    del low_thresh, thresh
 
     plt.rcParams['font.family'] = 'serif'
 
@@ -168,23 +217,59 @@ if __name__ == '__main__':
                 'artificial/cross/std_close.svg', dpi=300)
 
     plt.figure()
-    plt.imshow(param[..., 1] / param[..., 0], cmap='magma')
+    plt.imshow(amp_norm[..., 0] / param[..., 0], cmap='magma')
     plt.xticks([])
     plt.yticks([])
-    plt.colorbar(label='Amplitude / std')
+    plt.colorbar(label='Anisotropy')
 
     plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'artificial/cross/intensity_indicator.svg', dpi=300)
+                'artificial/cross/anisotropy.svg', dpi=300)
 
     plt.figure()
-    plt.imshow(param[450:550, 450:550, 1] / param[450:550, 450:550, 0],
-               cmap='magma')
+    plt.imshow(amp_norm[450:550, 450:550, 0]
+               / param[450:550, 450:550, 0], cmap='magma')
     plt.xticks([])
     plt.yticks([])
-    plt.colorbar(label='Amplitude / std')
+    plt.colorbar(label='Anisotropy')
 
     plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'artificial/cross/intensity_indicator_close.svg', dpi=300)
+                'artificial/cross/anisotropy_close.svg', dpi=300)
+
+    plt.figure()
+    plt.imshow(layer_score[..., 0], cmap='magma')
+    plt.xticks([])
+    plt.yticks([])
+    plt.colorbar(label='Layer score 1')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'artificial/cross/layer_score_1.svg', dpi=300)
+
+    plt.figure()
+    plt.imshow(layer_score[450:550, 450:550, 0], cmap='magma')
+    plt.xticks([])
+    plt.yticks([])
+    plt.colorbar(label='Layer score 1')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'artificial/cross/layer_score_1_close.svg', dpi=300)
+
+    plt.figure()
+    plt.imshow(layer_score[..., 1], cmap='magma')
+    plt.xticks([])
+    plt.yticks([])
+    plt.colorbar(label='Layer score 2')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'artificial/cross/layer_score_2.svg', dpi=300)
+
+    plt.figure()
+    plt.imshow(layer_score[450:550, 450:550, 1], cmap='magma')
+    plt.xticks([])
+    plt.yticks([])
+    plt.colorbar(label='Layer score 2')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'artificial/cross/layer_score_2_close.svg', dpi=300)
 
     plt.figure()
     plt.hist(angles[..., 0].flatten(),
