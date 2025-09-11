@@ -1,0 +1,451 @@
+# coding: utf-8
+
+import cupy as cp
+import numpy as np
+import cucim.skimage.filters as gpu_filters
+import cupyx.scipy.signal as gpu_signal
+from numba import cuda
+import os
+import sys
+import math
+from tqdm.auto import tqdm
+from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from microstructure_orientation.peak_detection import _find_peaks_gpu
+from microstructure_orientation.gaussian_fit import _fit_gpu
+
+NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
+
+
+def periodic_gauss(x: np.ndarray,
+                   sigma_1: float,
+                   a_1: float,
+                   sigma_2: float | None,
+                   a_2: float | None,
+                   sigma_3: float | None,
+                   a_3: float | None,
+                   b: float,
+                   mu_1: float,
+                   mu_2: float | None,
+                   mu_3: float | None,
+                   n: int) -> np.ndarray:
+    """Computes the sum of three periodic gaussian curves of the input array,
+    using the provided gaussian parameters.
+
+    Args:
+        x: The array over which to compute the gaussians.
+        sigma_1: Standard deviation for the first gaussian.
+        a_1: Multiplicative factor for the first gaussian.
+        sigma_2: Standard deviation for the second gaussian.
+        a_2: Multiplicative factor for the second gaussian.
+        sigma_3: Standard deviation for the second gaussian.
+        a_3: Multiplicative factor for the second gaussian.
+        b: Offset, common to all the gaussians.
+        mu_1: Center value of the first gaussian.
+        mu_2: Center value of the second gaussian.
+        mu_3: Center value of the third gaussian.
+        n: Number of gaussians to compute, between 1 and 3.
+
+    Returns:
+        The sum of the three periodic gaussians over the input array.
+    """
+
+    array_out = np.empty_like(x)
+
+    if n == 1:
+        for i in range(x.shape[0]):
+            array_out[i] = (
+                b +
+                a_1 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_1,
+                                                    math.pi) -
+                                          math.pi / 2) / sigma_1, 2)))
+    elif n == 2:
+        for i in range(x.shape[0]):
+            array_out[i] = (
+                b +
+                a_1 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_1,
+                                                    math.pi) -
+                                          math.pi / 2) / sigma_1, 2)) +
+                a_2 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_2,
+                                                    math.pi) -
+                                          math.pi / 2) / sigma_2, 2)))
+    elif n == 3:
+        for i in range(x.shape[0]):
+            array_out[i] = (
+                b +
+                a_1 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_1,
+                                                    math.pi) -
+                                          math.pi / 2) / sigma_1, 2)) +
+                a_2 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_2,
+                                                    math.pi) -
+                                          math.pi / 2) / sigma_2, 2)) +
+                a_3 * math.exp(-math.pow((math.fmod(x[i] + math.pi / 2 - mu_3,
+                                                    math.pi) -
+                                          math.pi / 2) / sigma_3, 2)))
+    return array_out
+
+
+if __name__ == '__main__':
+
+    img = np.load('./composite.npy')
+    filter_wavelength = 60
+    sigma_x = 2
+    sigma_y = 10
+
+    img = 1.0 - (img - img.min()) / (img.max() - img.min())
+
+    plt.rcParams['font.family'] = 'serif'
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(img, cmap='Greys')
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Pixel value')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/image.svg', dpi=300)
+
+    mem_pool = cp.get_default_memory_pool()
+
+    kernels = {i: gpu_filters.gabor_kernel(frequency=1 / filter_wavelength,
+                                           theta=np.pi / 2 - ang,
+                                           n_stds=2,
+                                           offset=0,
+                                           dtype=cp.complex64,
+                                           sigma_x=sigma_x,
+                                           sigma_y=sigma_y)
+               for i, ang
+               in enumerate(np.linspace(0, np.pi, NB_ANGLES).tolist())}
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(cp.asnumpy(cp.real(kernels[0])), cmap='plasma')
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Pixel value')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/kernel_0.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(cp.asnumpy(cp.real(kernels[22])), cmap='plasma')
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Pixel value')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/kernel_90.svg', dpi=300)
+
+    img_gpu = cp.asarray(img, dtype='float32')
+    res_gpu = cp.zeros(shape=(*img.shape, NB_ANGLES), dtype='float32')
+
+    for i, kernel in tqdm(kernels.items(),
+                          total=NB_ANGLES,
+                          desc='Apply Gabor kernels',
+                          file=sys.stdout,
+                          colour='green',
+                          mininterval=0.001,
+                          maxinterval=0.01,
+                          position=0,
+                          leave=True):
+        conv = gpu_signal.convolve2d(img_gpu,
+                                     kernel,
+                                     mode='same',
+                                     boundary='fill',
+                                     fillvalue=0).astype(cp.complex64)
+        conv /= cp.linalg.norm(cp.sum(kernel))
+        res_gpu[:, :, i] = cp.sqrt(conv.real ** 2 + conv.imag ** 2)
+
+    res = cp.asnumpy(res_gpu)
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(res[..., 0], cmap='plasma')
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Correlation output')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/gabor_0.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(res[..., 22], cmap='plasma')
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Correlation output')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/gabor_90.svg', dpi=300)
+
+    mem_pool.free_all_blocks()
+    mem_pool = cp.get_default_memory_pool()
+
+    angles, params = _find_peaks_gpu(res, np.linspace(0, 180, NB_ANGLES))
+
+    mem_pool.free_all_blocks()
+    mem_pool = cp.get_default_memory_pool()
+
+    tpb = (16, 16)
+    bpg = (int(math.ceil(res.shape[0] / tpb[0])),
+           int(math.ceil(res.shape[1] / tpb[1])))
+
+    # Count the number of peaks and load in GPU memory
+    n_peaks = np.count_nonzero(np.invert(np.isnan(angles)), axis=-1)
+    n_gpu = cuda.to_device(n_peaks.astype(np.float32))
+
+    # Load all the data in GPU memory
+    x_gpu = cuda.to_device(
+        np.radians(np.linspace(0, 180, NB_ANGLES)).astype(np.float32))
+    y_gpu = cuda.to_device(res.astype(np.float32))
+    p_gpu = cuda.to_device(params.astype(np.float32))
+    m_gpu = cuda.to_device(np.radians(angles).astype(np.float32))
+
+    # Perform the gaussian fit
+    _fit_gpu[bpg, tpb](n_gpu, x_gpu, y_gpu, p_gpu, m_gpu, 1e-6, 5000)
+
+    # Copy the result in CPU memory and write it on the disk
+    param = p_gpu.copy_to_host()
+
+    # Free up the GPU memory
+    mem_pool.free_all_blocks()
+
+    mem_pool = cp.get_default_memory_pool()
+
+    ang = cp.nan_to_num(
+        cp.deg2rad(cp.asarray(angles, dtype=cp.float32))[..., cp.newaxis])
+    amp = cp.nan_to_num(cp.asarray(np.stack((param[..., 1],
+                                             param[..., 3],
+                                             param[..., 5]),
+                                            axis=2)[..., np.newaxis],
+                                   dtype=cp.float32))
+    sig = cp.nan_to_num(cp.asarray(np.stack((param[..., 0],
+                                             param[..., 2],
+                                             param[..., 4]),
+                                            axis=2)[..., np.newaxis],
+                                   dtype=cp.float32))
+    amp[sig <= 0] = 0
+    sig[sig <= 0] = 1.0e-5
+
+    sign_3 = cp.tile(cp.linspace(0, cp.pi, NB_ANGLES),
+                     (img.shape[0], img.shape[1], 3, 1))
+    sign_3 = amp * cp.exp(-cp.power((cp.mod(sign_3 + cp.pi / 2 - ang, cp.pi)
+                                     - cp.pi / 2) / sig, 2))
+    signal = cp.sum(sign_3, axis=2)
+
+    del ang
+    amp = cp.squeeze(amp)
+    sig = cp.squeeze(sig)
+
+    signal_sum = cp.sum(signal, axis=2)
+    amp_norm = amp / signal_sum[..., cp.newaxis]
+
+    # signal_norm = cp.nan_to_num(signal / signal_sum[..., cp.newaxis])
+    del signal
+    sign_3_norm = cp.nan_to_num(sign_3 /
+                                signal_sum[..., cp.newaxis, cp.newaxis])
+    del sign_3, signal_sum
+    layer_score = cp.sum(sign_3_norm, axis=3)
+
+    low_thresh = cp.percentile(amp, 40, axis=(0, 1))[cp.newaxis, cp.newaxis, :]
+    low_thresh = cp.nan_to_num(low_thresh)
+    thresh = 1 / (1 + cp.exp(-10 * (amp - low_thresh)))
+    amp_norm *= thresh
+
+    del low_thresh, thresh
+
+    anisotropy = np.nan_to_num(amp_norm / sig)
+    del sig
+    anisotropy_unique = 1 - np.prod(1 - anisotropy, axis=2)
+
+    amp_norm = cp.asnumpy(amp_norm)
+    amp = cp.asnumpy(amp)
+    layer_score = cp.asnumpy(layer_score)
+    anisotropy = cp.asnumpy(anisotropy)
+    anisotropy_unique = cp.asnumpy(anisotropy_unique)
+
+    mem_pool.free_all_blocks()
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(angles[..., 0], cmap='twilight', clim=(0, 180))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Angle (degrees)')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/dominant_angle.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(angles[..., 1], cmap='twilight', clim=(0, 180))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Angle (degrees)')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/second_angle.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(param[..., 0], cmap='plasma')
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Standard deviation')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/std.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(param[..., 1], cmap='plasma',
+                    clim=(np.percentile(param[..., 1], 1),
+                          np.percentile(param[..., 1], 99)))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Peak amplitude')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/amplitude.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = anisotropy[..., 0]
+    im = plt.imshow(data, cmap='plasma', clim=(np.percentile(data, 1),
+                                               np.percentile(data, 99)))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/anisotropy.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = anisotropy_unique
+    im = plt.imshow(data, cmap='plasma', clim=(np.percentile(data, 1),
+                                               np.percentile(data, 99)))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/anisotropy_unique.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = angles[..., 0].copy()
+    data[(data < 160) & (data > 20)] = np.nan
+    data[(angles[..., 0] >= 160) | (angles[..., 0] <= 20)] = 1
+    data[(angles[..., 1] >= 160) | (angles[..., 1] <= 20)] = 2
+    im = plt.imshow(data, cmap='plasma', clim=(0, 2))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax,
+                 label='0: not in range, 1: 1st peak, 2: 2nd peak')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/anisotropy_20_160.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = angles[..., 0].copy()
+    data[(data < 70) | (data > 110)] = np.nan
+    data[(angles[..., 0] >= 70) & (angles[..., 0] <= 110)] = 1
+    data[(angles[..., 1] >= 70) & (angles[..., 1] <= 110)] = 2
+    im = plt.imshow(data, cmap='plasma', clim=(0, 2))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax,
+                 label='0: not in range, 1: 1st peak, 2: 2nd peak')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/anisotropy_70_110.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = np.full_like(angles[..., 0], np.nan)
+    data[((angles[..., 1] >= 20) & (angles[..., 1] <= 70)) |
+         ((angles[..., 1] >= 110) & (angles[..., 1] <= 160))] = 1
+    im = plt.imshow(data, cmap='plasma', clim=(0, 1))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax,
+                 label='0: not in range, 1: 1st peak, 2: 2nd peak')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/anisotropy_other.svg', dpi=300)
+
+    plt.figure()
+    plt.hist(angles[~np.isnan(angles)].flatten(),
+             weights=np.full_like(angles[~np.isnan(angles)].flatten(),
+                                  1 / np.count_nonzero(~np.isnan(angles))),
+             bins=45)
+    plt.xlabel('Angle (degrees)')
+    plt.ylabel('Fraction of values')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/angle_distribution.svg', dpi=300)
+
+    plt.figure()
+    plt.hist(angles[~np.isnan(angles)].flatten(),
+             weights=anisotropy[~np.isnan(angles)].flatten() /
+                     np.sum(anisotropy[~np.isnan(angles)]),
+             bins=45)
+    plt.xlabel('Angle (degrees)')
+    plt.ylabel('Fraction of values (weighted)')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/weighted_angle_distribution.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = layer_score[..., 0]
+    im = plt.imshow(data, cmap='plasma', clim=(0, 1))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/layer_score_1.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = layer_score[..., 1]
+    im = plt.imshow(data, cmap='plasma', clim=(0, 1))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/composite/layer_score_2.svg', dpi=300)
+
+    plt.close('all')
