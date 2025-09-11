@@ -186,42 +186,10 @@ if __name__ == '__main__':
     plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
                 'figures/7LX1_3/gabor_90.svg', dpi=300)
 
-    plt.figure()
-    plt.plot(np.linspace(0, 180, NB_ANGLES), res[215, 591])
-    plt.xlabel('Angle (degrees)')
-    plt.ylabel('Filter response')
-
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/7LX1_3/angle_distribution.svg', dpi=300)
-
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()
 
     angles, params = _find_peaks_gpu(res, np.linspace(0, 180, NB_ANGLES))
-
-    plt.figure()
-    ax = plt.gca()
-    im = plt.imshow(angles[..., 0], cmap='twilight', clim=(0, 180))
-    plt.xticks([])
-    plt.yticks([])
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.1)
-    plt.colorbar(im, cax=cax, label='Angle (degrees)')
-
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/7LX1_3/dominant_angle.svg', dpi=300)
-
-    plt.figure()
-    ax = plt.gca()
-    im = plt.imshow(angles[..., 1], cmap='twilight', clim=(0, 180))
-    plt.xticks([])
-    plt.yticks([])
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="5%", pad=0.1)
-    plt.colorbar(im, cax=cax, label='Angle (degrees)')
-
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/7LX1_3/second_angle.svg', dpi=300)
 
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()
@@ -249,6 +217,86 @@ if __name__ == '__main__':
 
     # Free up the GPU memory
     mem_pool.free_all_blocks()
+
+    mem_pool = cp.get_default_memory_pool()
+
+    ang = cp.nan_to_num(
+        cp.deg2rad(cp.asarray(angles, dtype=cp.float32))[..., cp.newaxis])
+    amp = cp.nan_to_num(cp.asarray(np.stack((param[..., 1],
+                                             param[..., 3],
+                                             param[..., 5]),
+                                            axis=2)[..., np.newaxis],
+                                   dtype=cp.float32))
+    sig = cp.nan_to_num(cp.asarray(np.stack((param[..., 0],
+                                             param[..., 2],
+                                             param[..., 4]),
+                                            axis=2)[..., np.newaxis],
+                                   dtype=cp.float32))
+    amp[sig <= 0] = 0
+    sig[sig <= 0] = 1.0e-5
+
+    sign_3 = cp.tile(cp.linspace(0, cp.pi, NB_ANGLES),
+                     (img.shape[0], img.shape[1], 3, 1))
+    sign_3 = amp * cp.exp(-cp.power((cp.mod(sign_3 + cp.pi / 2 - ang, cp.pi)
+                                     - cp.pi / 2) / sig, 2))
+    signal = cp.sum(sign_3, axis=2)
+
+    del ang
+    amp = cp.squeeze(amp)
+    sig = cp.squeeze(sig)
+
+    signal_sum = cp.sum(signal, axis=2)
+    amp_norm = amp / signal_sum[..., cp.newaxis]
+
+    # signal_norm = cp.nan_to_num(signal / signal_sum[..., cp.newaxis])
+    del signal
+    sign_3_norm = cp.nan_to_num(sign_3 /
+                                signal_sum[..., cp.newaxis, cp.newaxis])
+    del sign_3, signal_sum
+    layer_score = cp.sum(sign_3_norm, axis=3)
+
+    low_thresh = cp.percentile(amp, 25, axis=(0, 1))[cp.newaxis, cp.newaxis, :]
+    low_thresh = cp.nan_to_num(low_thresh)
+    thresh = 1 / (1 + cp.exp(-10 * (amp - low_thresh)))
+    amp_norm *= thresh
+
+    del low_thresh, thresh
+
+    anisotropy = np.nan_to_num(amp_norm / sig)
+    del sig
+    anisotropy_unique = 1 - np.prod(1 - anisotropy, axis=2)
+
+    amp_norm = cp.asnumpy(amp_norm)
+    amp = cp.asnumpy(amp)
+    layer_score = cp.asnumpy(layer_score)
+    anisotropy = cp.asnumpy(anisotropy)
+    anisotropy_unique = cp.asnumpy(anisotropy_unique)
+
+    mem_pool.free_all_blocks()
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(angles[..., 0], cmap='twilight', clim=(0, 180))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Angle (degrees)')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/dominant_angle.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    im = plt.imshow(angles[..., 1], cmap='twilight', clim=(0, 180))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Angle (degrees)')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/second_angle.svg', dpi=300)
 
     plt.figure()
     plt.plot(np.linspace(0, 180, NB_ANGLES), res[215, 591],
@@ -315,7 +363,7 @@ if __name__ == '__main__':
 
     plt.figure()
     ax = plt.gca()
-    data = param[..., 1] / param[..., 0]
+    data = anisotropy[..., 0]
     im = plt.imshow(data, cmap='plasma', clim=(np.percentile(data, 1),
                                                np.percentile(data, 99)))
     plt.xticks([])
@@ -325,12 +373,76 @@ if __name__ == '__main__':
     plt.colorbar(im, cax=cax, label='Fractional anisotropy')
 
     plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/7LX1_3/fractional_anisotropy.svg', dpi=300)
+                'figures/7LX1_3/anisotropy.svg', dpi=300)
 
     plt.figure()
-    plt.hist(angles[..., 0].flatten(),
-             weights=np.full_like(angles[..., 0].flatten(),
-                                  1 / (angles.shape[0] * angles.shape[1])),
+    ax = plt.gca()
+    data = anisotropy_unique
+    im = plt.imshow(data, cmap='plasma', clim=(np.percentile(data, 1),
+                                               np.percentile(data, 99)))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/anisotropy_unique.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = angles[..., 0].copy()
+    data[(data < 40) | (data > 80)] = np.nan
+    data[(angles[..., 0] >= 40) & (angles[..., 0] <= 80)] = 1
+    data[(angles[..., 1] >= 40) & (angles[..., 1] <= 80)] = 2
+    im = plt.imshow(data, cmap='plasma', clim=(0, 2))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax,
+                 label='0: not in range, 1: 1st peak, 2: 2nd peak')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/anisotropy_40_80.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = angles[..., 0].copy()
+    data[(data < 105) | (data > 145)] = np.nan
+    data[(angles[..., 0] >= 105) & (angles[..., 0] <= 145)] = 1
+    data[(angles[..., 1] >= 105) & (angles[..., 1] <= 145)] = 2
+    im = plt.imshow(data, cmap='plasma', clim=(0, 2))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax,
+                 label='0: not in range, 1: 1st peak, 2: 2nd peak')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/anisotropy_105_145.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = np.full_like(angles[..., 0], np.nan)
+    data[(angles[..., 1] <= 40) | (angles[..., 1] >= 145) |
+         ((angles[..., 1] >= 80) & (angles[..., 1] <= 105))] = 1
+    im = plt.imshow(data, cmap='plasma', clim=(0, 1))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax,
+                 label='0: not in range, 1: 1st peak, 2: 2nd peak')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/anisotropy_other.svg', dpi=300)
+
+    plt.figure()
+    plt.hist(angles[~np.isnan(angles)].flatten(),
+             weights=np.full_like(angles[~np.isnan(angles)].flatten(),
+                                  1 / np.count_nonzero(~np.isnan(angles))),
              bins=45)
     plt.xlabel('Angle (degrees)')
     plt.ylabel('Fraction of values')
@@ -339,8 +451,9 @@ if __name__ == '__main__':
                 'figures/7LX1_3/angle_distribution.svg', dpi=300)
 
     plt.figure()
-    plt.hist(angles[..., 0].flatten(),
-             weights=data.flatten() / np.sum(data),
+    plt.hist(angles[~np.isnan(angles)].flatten(),
+             weights=anisotropy[~np.isnan(angles)].flatten() /
+             np.sum(anisotropy[~np.isnan(angles)]),
              bins=45)
     plt.xlabel('Angle (degrees)')
     plt.ylabel('Fraction of values (weighted)')
@@ -348,4 +461,30 @@ if __name__ == '__main__':
     plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
                 'figures/7LX1_3/weighted_angle_distribution.svg', dpi=300)
 
-    plt.show()
+    plt.figure()
+    ax = plt.gca()
+    data = layer_score[..., 0]
+    im = plt.imshow(data, cmap='plasma', clim=(0, 1))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/layer_score_1.svg', dpi=300)
+
+    plt.figure()
+    ax = plt.gca()
+    data = layer_score[..., 1]
+    im = plt.imshow(data, cmap='plasma', clim=(0, 1))
+    plt.xticks([])
+    plt.yticks([])
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="5%", pad=0.1)
+    plt.colorbar(im, cax=cax, label='Fractional anisotropy')
+
+    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
+                'figures/7LX1_3/layer_score_2.svg', dpi=300)
+
+    plt.close('all')
