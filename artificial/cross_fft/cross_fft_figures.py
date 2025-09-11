@@ -15,9 +15,6 @@ if __name__ == '__main__':
 
     img = np.load('/home/weis/Codes/MicrostructureOrientation/'
                   'artificial/cross.npy')
-    filter_wavelength = 100
-    sigma_x = 12
-    sigma_y = 30
 
     img = (img - img.min()) / (img.max() - img.min())
 

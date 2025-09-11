@@ -58,8 +58,6 @@ if __name__ == '__main__':
         res_gpu[:, :, i] = cp.sqrt(conv.real ** 2 + conv.imag ** 2)
 
     res = cp.asnumpy(res_gpu)
-    var = np.sqrt(np.sum(np.power(res - np.mean(res, axis=-1)[..., np.newaxis],
-                                  2), axis=-1))
 
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()
