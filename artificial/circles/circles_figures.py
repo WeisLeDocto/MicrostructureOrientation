@@ -294,9 +294,16 @@ if __name__ == '__main__':
     rows, cols = np.indices(img.shape)
     phi = np.arctan2(rows - 499, cols - 499)
     phi = np.rad2deg(np.mod(phi + np.pi / 2, np.pi))
+    phi_plus = np.tile(phi, (45, 1, 1))
+    diff = phi_plus - np.linspace(0, 180, 45)[:, np.newaxis, np.newaxis]
+    idx_min = np.argmin(np.abs(diff), axis=0)
+    idx_x = np.tile(np.arange(phi.shape[0])[:, np.newaxis], (1, phi.shape[1]))
+    idx_y = np.tile(np.arange(phi.shape[1]), (phi.shape[0], 1))
+    phi = phi.flatten() - diff[idx_min.flatten(), idx_x.flatten(),
+                               idx_y.flatten()]
 
     plt.figure()
-    plt.hist(phi.flatten(), bins=45,
+    plt.hist(phi, bins=45,
              weights=img.flatten() / np.sum(img))
     plt.xlabel('Angle (degrees)')
     plt.ylabel('Fraction of values (weighted)')
