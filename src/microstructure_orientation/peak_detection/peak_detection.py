@@ -41,11 +41,15 @@ def _find_peaks_gpu(gabor_data_cpu: np.ndarray,
            int(math.ceil(gabor_data.shape[1] / tpb[1])),
            int(math.ceil(gabor_data.shape[2] / tpb[2])))
 
+    tpb_2 = (16, 16)
+    bpg_2 = (int(math.ceil(gabor_data.shape[0] / tpb[0])),
+             int(math.ceil(gabor_data.shape[1] / tpb[1])))
+
     # Rearrange the Gabor response curve so that the minimum is on one end of
     # the array
     min_idx = cp.argmin(gabor_data, axis=2, dtype=cp.int32)
     to_search = cp.empty_like(gabor_data, dtype=cp.float32)
-    rearrange[bpg, tpb](gabor_data, min_idx, to_search)
+    rearrange[bpg_2, tpb_2](gabor_data, min_idx, to_search)
 
     # Find the indexes of the local maxima
     peaks = cp.empty_like(gabor_data, dtype=cp.int32)
