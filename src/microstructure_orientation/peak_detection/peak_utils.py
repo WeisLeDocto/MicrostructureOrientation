@@ -47,7 +47,7 @@ def make_peak_mask(peaks: cp.ndarray,
     x, y, z = cuda.grid(3)
     if x < peaks.shape[0] and y < peaks.shape[1] and z < peaks.shape[2]:
         peak_idx = peaks[x, y, z]
-        if peak_idx > 0:
+        if 0 < peak_idx < mask.shape[2]:
             mask[x, y, peak_idx] = 1
 
 
