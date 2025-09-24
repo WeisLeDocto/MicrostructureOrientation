@@ -52,7 +52,7 @@ def _find_peaks_gpu(gabor_data_cpu: np.ndarray,
     rearrange[bpg_2, tpb_2](gabor_data, min_idx, to_search)
 
     # Find the indexes of the local maxima
-    peaks = cp.empty_like(gabor_data, dtype=cp.int32)
+    peaks = cp.full_like(gabor_data, -1, dtype=cp.int32)
     local_maxima_gpu[bpg, tpb](to_search, peaks)
 
     # Make a mask indicating for each point if it is a local maximum
