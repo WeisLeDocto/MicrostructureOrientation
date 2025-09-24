@@ -13,7 +13,6 @@ from tqdm.auto import tqdm
 from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from microstructure_orientation.peak_detection import _find_peaks_gpu
 from microstructure_orientation.gaussian_fit import _fit_gpu
 
@@ -153,6 +152,24 @@ if __name__ == "__main__":
     sigmas_y = (30, 30, 12, 30, 30)
     thresholds = (5, 5, 25, 5, 25)
 
+    fig, axs = plt.subplots(1, 5, sharex='col', sharey='row', figsize=(14, 2),
+                            layout='constrained')
+
+    for k, img in enumerate(images):
+
+        plt.subplot(1, 5, k + 1)
+        plt.title(f"({string.ascii_lowercase[k]})", loc='left')
+        plt.imshow((img - img.min()) / (img.max() - img.min()), cmap='Greys_r')
+
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='Greys_r'),
+                 ax=axs, label='Normalized pixel value')
+
+    plt.savefig('./comp_fig.svg', dpi=300)
+
+    plt.show()
+
+    exit()
+
     fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(8, 6),
                             layout='constrained')
 
@@ -187,7 +204,6 @@ if __name__ == "__main__":
     plt.savefig('./comp_wave.svg', dpi=300)
 
     plt.show()
-    exit()
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
 
