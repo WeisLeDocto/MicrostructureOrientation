@@ -215,49 +215,27 @@ if __name__ == "__main__":
     methods = (proc_structure, proc_frangi, proc_congruency, proc_fft,
                proc_steerable)
 
-    fig, axs = plt.subplots(2, 2, figsize=(8, 6))
-
-    for k, method in enumerate(methods[3:]):
-
-        angles, _, res, *_ = method(images[2])
-
-        plt.subplot(2, 2, k + 1)
-        plt.title(f"({string.ascii_lowercase[k]})")
-        if k == 0:
-            plt.ylabel('1', rotation='horizontal')
-        plt.imshow(angles[400:600, 400:600, 1], cmap='twilight', clim=(0, 180))
-
-        plt.subplot(2, 2, k + 3)
-        if k == 0:
-            plt.ylabel('2', rotation='horizontal')
-        data = res[691, 750] - res[691, 750].min()
-        plt.plot(np.linspace(0, 180, NB_ANGLES), data / np.sum(data))
-        plt.xlabel('Angle (degrees)')
-
-    axs[0][1].set_yticklabels([])
-
-    plt.colorbar(ScalarMappable(norm=Normalize(0, 180), cmap='twilight'),
-                 ax=axs[0], label='Angle (degrees)')
-
-    plt.savefig('./benchamrk_cross_add.svg', dpi=300)
-
-    plt.show()
-
-    fig, ax = plt.subplots(2, 3, figsize=(15, 7))
+    fig, ax = plt.subplots(3, 3, figsize=(15, 10))
 
     for k, img in enumerate(images[3:]):
 
         (angles, aniso, *_) = proc_steerable(img)
 
-        plt.subplot(2, 3, k + 1)
+        plt.subplot(3, 3, k + 1)
         plt.title(f"({string.ascii_lowercase[k]})")
         if k == 0:
-            plt.ylabel('1', rotation='horizontal')
+            plt.ylabel('(1)', rotation='horizontal')
+        plt.imshow((img - img.min()) / (img.max() - img.min()),
+                   cmap='Greys_r', clim=(0, 1))
+
+        plt.subplot(3, 3, k + 4)
+        if k == 0:
+            plt.ylabel('(2)', rotation='horizontal')
         plt.imshow(angles[..., 0], cmap='twilight', clim=(0, 180))
 
-        plt.subplot(2, 3, k + 4)
+        plt.subplot(3, 3, k + 7)
         if k == 0:
-            plt.ylabel('2', rotation='horizontal')
+            plt.ylabel('(3)', rotation='horizontal')
         data = np.clip((aniso[..., 0] - np.percentile(aniso[..., 0], 1)) /
                        (np.percentile(aniso[..., 0], 99) -
                         np.percentile(aniso[..., 0], 1)), 0, 1)
@@ -265,18 +243,24 @@ if __name__ == "__main__":
 
     ax[0][0].set_xticklabels([])
     ax[0][1].set_xticklabels([])
-    ax[0][2].set_xticklabels([])
     ax[0][1].set_yticklabels([])
+    ax[1][0].set_xticklabels([])
+    ax[1][1].set_xticklabels([])
+    ax[1][2].set_xticklabels([])
     ax[1][1].set_yticklabels([])
+    ax[2][1].set_yticklabels([])
 
-    plt.subplot(2, 3, 3)
-    plt.title(f"({string.ascii_lowercase[2]})")
+    plt.subplot(3, 3, 3)
+    plt.axis('off')
+
+    plt.subplot(3, 3, 6)
     plt.hist(angles[~np.isnan(angles)].flatten(),
              weights=aniso[~np.isnan(angles)].flatten() /
              np.sum(aniso[~np.isnan(angles)]) * 100,
              bins=45)
     plt.ylim((0, 5))
     plt.ylabel('% values')
+    plt.title(f"(c)")
 
     img = (img - img.min()) / (img.max() - img.min())
 
@@ -291,12 +275,20 @@ if __name__ == "__main__":
     phi = phi.flatten() - diff[idx_min.flatten(), idx_x.flatten(),
     idx_y.flatten()]
 
-    plt.subplot(2, 3, 6)
+    plt.subplot(3, 3, 9)
     plt.hist(phi, bins=45,
              weights=img.flatten() / np.sum(img) * 100)
     plt.ylim((0, 5))
     plt.xlabel('Angle (degrees)')
     plt.ylabel('% values')
+    plt.title(f"(d)")
+
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='Greys_r'),
+                 ax=[ax[0][0], ax[0][1]], label='Normalized pixel value')
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 180), cmap='twilight'),
+                 ax=[ax[1][0], ax[1][1]], label='Angle (degrees)')
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='magma'),
+                 ax=[ax[2][0], ax[2][1]], label='Fiber-likeness score')
 
     plt.savefig('./benchmark_steerable.svg', dpi=300)
 
@@ -316,12 +308,12 @@ if __name__ == "__main__":
         plt.subplot(2, 5, k + 1)
         plt.title(f"({string.ascii_lowercase[k]})")
         if k == 0:
-            plt.ylabel('1', rotation='horizontal')
+            plt.ylabel('(1)', rotation='horizontal')
         plt.imshow(angles[400:600, 400:600], cmap='twilight', clim=(0, 180))
 
         plt.subplot(2, 5, k + 6)
         if k == 0:
-            plt.ylabel('2', rotation='horizontal')
+            plt.ylabel('(2)', rotation='horizontal')
         data = np.clip((aniso - np.percentile(aniso, 1)) /
                        (np.percentile(aniso, 99) -
                         np.percentile(aniso, 1)), 0, 1)
@@ -350,12 +342,12 @@ if __name__ == "__main__":
         plt.subplot(2, 5, k + 1)
         plt.title(f"({string.ascii_lowercase[k]})")
         if k == 0:
-            plt.ylabel('1', rotation='horizontal')
+            plt.ylabel('(1)', rotation='horizontal')
         plt.imshow(angles, cmap='twilight', clim=(0, 180))
 
         plt.subplot(2, 5, k + 6)
         if k == 0:
-            plt.ylabel('2', rotation='horizontal')
+            plt.ylabel('(2)', rotation='horizontal')
         data = np.clip((aniso - np.percentile(aniso, 1)) /
                        (np.percentile(aniso, 99) -
                         np.percentile(aniso, 1)), 0, 1)
@@ -367,5 +359,47 @@ if __name__ == "__main__":
                  label='Fiber-likeness score')
 
     plt.savefig('./benchmark_lines.svg', dpi=300)
+
+    plt.show()
+
+    fig = plt.figure(figsize=(18, 4))
+
+    gs = fig.add_gridspec(2, 6)
+    ax1 = fig.add_subplot(gs[0, 0:1])
+    ax2 = fig.add_subplot(gs[0, 2:3])
+    ax3 = fig.add_subplot(gs[0, 4:5])
+    ax4 = fig.add_subplot(gs[1, 0:2])
+    ax5 = fig.add_subplot(gs[1, 3:5])
+
+    data = (images[2] - images[2].min()) / (images[2].max() - images[2].min())
+    ax1.imshow(data[400:600, 400:600], cmap='Greys_r', clim=(0, 1))
+    ax1.set_title("(a)", loc='left')
+
+    angles, _, res, *_ = methods[3](images[2])
+    ax2.imshow(angles[400:600, 400:600, 1], cmap='twilight', clim=(0, 180))
+    ax2.set_title("(b)", loc='left')
+    ax2.set_yticklabels([])
+
+    data = res[691, 750] - res[691, 750].min()
+    ax4.plot(np.linspace(0, 180, NB_ANGLES), data / np.sum(data))
+    ax4.set_xlabel('Angle (degrees)')
+    ax4.set_title("(d)", loc='right')
+
+    angles, _, res, *_ = methods[4](images[2])
+    ax3.imshow(angles[400:600, 400:600, 1], cmap='twilight', clim=(0, 180))
+    ax3.set_title("(c)", loc='left')
+    ax3.set_yticklabels([])
+
+    data = res[691, 750] - res[691, 750].min()
+    ax5.plot(np.linspace(0, 180, NB_ANGLES), data / np.sum(data))
+    ax5.set_xlabel('Angle (degrees)')
+    ax5.set_title("(e)", loc='left')
+
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='Greys_r'),
+                 ax=[ax1], label='Normalized pixel value')
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 180), cmap='twilight'),
+                 ax=[ax2, ax3], label='Angle (degrees)')
+
+    plt.savefig('./benchmark_cross_add.svg', dpi=300)
 
     plt.show()

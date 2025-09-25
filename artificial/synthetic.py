@@ -152,6 +152,97 @@ if __name__ == "__main__":
     sigmas_y = (30, 30, 12, 30, 30)
     thresholds = (5, 5, 25, 5, 25)
 
+    fig, axs = plt.subplots(3, 2, sharex='col', sharey='row', figsize=(8, 9),
+                            layout='constrained')
+
+    for k in range(2):
+
+        (_, angles, _, _, _,
+         aniso, _) = process_img(images[4], 60.0,
+                                 sigmas_x[4] if k == 0 else 8,
+                                 sigmas_y[4] if k == 0 else 18,
+                                 thresholds[4])
+
+        plt.subplot(3, 2, k + 3)
+        if k == 0:
+            plt.title("(b)", loc='left')
+        else:
+            plt.title("(c)", loc='left')
+        plt.imshow(angles[400:600, 400:600, 0], cmap='twilight', clim=(0, 180))
+        plt.xticks([0, 50, 100, 150])
+
+        plt.subplot(3, 2, k + 5)
+        if k == 0:
+            plt.title("(d)", loc='left')
+            plt.xlabel(r'$\sigma_x = 12, \quad \sigma_y = 30$')
+        else:
+            plt.title("(e)", loc='left')
+            plt.xlabel(r'$\sigma_x = 8, \quad \sigma_y = 18$')
+        data = np.clip((aniso[400:600, 400:600, 0] -
+                        np.percentile(aniso[400:600, 400:600, 0], 1)) /
+                       (np.percentile(aniso[400:600, 400:600, 0], 99) -
+                        np.percentile(aniso[400:600, 400:600, 0], 1)), 0, 1)
+        plt.imshow(data, cmap='magma')
+        plt.xticks([0, 50, 100, 150])
+
+    plt.subplot(3, 2, 1)
+    plt.title("(a)", loc='left')
+    data = (images[4] - images[4].min()) / (images[4].max() - images[4].min())
+    plt.imshow(data[400:600, 400:600], cmap='Greys_r', clim=(0, 1))
+
+    plt.subplot(3, 2, 2)
+    plt.axis('off')
+
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='Greys_r'),
+                 ax=axs[0], label='Normalized pixel value')
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 180), cmap='twilight'),
+                 ax=axs[1], label='Angle (degrees)')
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='magma'), ax=axs[2],
+                 label='Fiber-likeness score')
+
+    plt.savefig('./comp_wave.svg', dpi=300)
+
+    plt.show()
+
+    fig, axs = plt.subplots(3, 5, sharex='col', sharey='row', figsize=(18, 7),
+                            layout='constrained')
+
+    for k, (img, sig_x, sig_y, thresh) in enumerate(zip(images, sigmas_x,
+                                                        sigmas_y, thresholds)):
+
+        (_, angles, _, _, _, aniso, _) = process_img(img, 60.0, sig_x,
+                                                     sig_y, thresh)
+
+        plt.subplot(3, 5, k + 1)
+        plt.title(f"({string.ascii_lowercase[k]})")
+        if k == 0:
+            plt.ylabel('(1)', rotation='horizontal')
+        plt.imshow((img - img.min()) / (img.max() - img.min()), cmap='Greys_r')
+
+        plt.subplot(3, 5, k + 6)
+        if k == 0:
+            plt.ylabel('(2)', rotation='horizontal')
+        plt.imshow(angles[..., 0], cmap='twilight', clim=(0, 180))
+
+        plt.subplot(3, 5, k + 11)
+        if k == 0:
+            plt.ylabel('(3)', rotation='horizontal')
+        data = np.clip((aniso[..., 0] - np.percentile(aniso[..., 0], 1)) /
+                       (np.percentile(aniso[..., 0], 99) -
+                        np.percentile(aniso[..., 0], 1)), 0, 1)
+        plt.imshow(data, cmap='magma')
+
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='Greys_r'),
+                 ax=axs[0], label='Normalized pixel value')
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 180), cmap='twilight'),
+                 ax=axs[1], label='Angle (degrees)')
+    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='magma'), ax=axs[2],
+                 label='Fiber-likeness score')
+
+    plt.savefig('./comp_meth.svg', dpi=300)
+
+    plt.show()
+
     fig, axs = plt.subplots(1, 5, sharex='col', sharey='row', figsize=(14, 2),
                             layout='constrained')
 
@@ -165,43 +256,6 @@ if __name__ == "__main__":
                  ax=axs, label='Normalized pixel value')
 
     plt.savefig('./comp_fig.svg', dpi=300)
-
-    plt.show()
-
-    exit()
-
-    fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(8, 6),
-                            layout='constrained')
-
-    for k in range(2):
-
-        (_, angles, _, _, _,
-         aniso, _) = process_img(images[4], 60.0,
-                                 sigmas_x[4] if k == 0 else 8,
-                                 sigmas_y[4] if k == 0 else 18,
-                                 thresholds[4])
-
-        plt.subplot(2, 2, k + 1)
-        plt.title(f"({string.ascii_lowercase[k]})")
-        if k == 0:
-            plt.ylabel('1', rotation='horizontal')
-        plt.imshow(angles[400:600, 400:600, 0], cmap='twilight', clim=(0, 180))
-
-        plt.subplot(2, 2, k + 3)
-        if k == 0:
-            plt.ylabel('2', rotation='horizontal')
-        data = np.clip((aniso[400:600, 400:600, 0] -
-                        np.percentile(aniso[400:600, 400:600, 0], 1)) /
-                       (np.percentile(aniso[400:600, 400:600, 0], 99) -
-                        np.percentile(aniso[400:600, 400:600, 0], 1)), 0, 1)
-        plt.imshow(data, cmap='magma')
-
-    plt.colorbar(ScalarMappable(norm=Normalize(0, 180), cmap='twilight'),
-                 ax=axs[0], label='Angle (degrees)')
-    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='magma'), ax=axs[1],
-                 label='Fiber-likeness score')
-
-    plt.savefig('./comp_wave.svg', dpi=300)
 
     plt.show()
 
@@ -296,44 +350,5 @@ if __name__ == "__main__":
                  ax=[ax3], label='Layer score', use_gridspec=True)
 
     plt.savefig('./comp_cross.svg', dpi=300)
-
-    plt.show()
-
-    fig, axs = plt.subplots(3, 5, sharex='col', sharey='row', figsize=(18, 7),
-                            layout='constrained')
-
-    for k, (img, sig_x, sig_y, thresh) in enumerate(zip(images, sigmas_x,
-                                                        sigmas_y, thresholds)):
-
-        (_, angles, _, _, _, aniso, _) = process_img(img, 60.0, sig_x,
-                                                     sig_y, thresh)
-
-        plt.subplot(3, 5, k + 1)
-        plt.title(f"({string.ascii_lowercase[k]})")
-        if k == 0:
-            plt.ylabel('1', rotation='horizontal')
-        plt.imshow((img - img.min()) / (img.max() - img.min()), cmap='Greys_r')
-
-        plt.subplot(3, 5, k + 6)
-        if k == 0:
-            plt.ylabel('2', rotation='horizontal')
-        plt.imshow(angles[..., 0], cmap='twilight', clim=(0, 180))
-
-        plt.subplot(3, 5, k + 11)
-        if k == 0:
-            plt.ylabel('3', rotation='horizontal')
-        data = np.clip((aniso[..., 0] - np.percentile(aniso[..., 0], 1)) /
-                       (np.percentile(aniso[..., 0], 99) -
-                        np.percentile(aniso[..., 0], 1)), 0, 1)
-        plt.imshow(data, cmap='magma')
-
-    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='Greys_r'),
-                 ax=axs[0], label='Normalized pixel value')
-    plt.colorbar(ScalarMappable(norm=Normalize(0, 180), cmap='twilight'),
-                 ax=axs[1], label='Angle (degrees)')
-    plt.colorbar(ScalarMappable(norm=Normalize(0, 1), cmap='magma'), ax=axs[2],
-                 label='Fiber-likeness score')
-
-    plt.savefig('./comp_meth.svg', dpi=300)
 
     plt.show()
