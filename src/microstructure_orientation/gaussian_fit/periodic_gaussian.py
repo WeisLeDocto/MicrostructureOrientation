@@ -5,8 +5,8 @@ import math
 from numba import cuda, types
 import os
 
-from .gpu_utils import (gpu_exp, gpu_pow, gpu_minus, gpu_sub, gpu_mul, gpu_div,
-                        gpu_array_sub, gpu_array_mul, gpu_sum)
+from .gpu_utils import (gpu_exp, gpu_pow, gpu_minus, gpu_sub_mod, gpu_mul,
+                        gpu_div, gpu_array_sub, gpu_array_mul, gpu_sum)
 
 NB_ANGLES = int(os.getenv("MICRO_ORIENT_NB_ANG", default="45"))
 
@@ -62,28 +62,40 @@ def periodic_gauss_gpu(x: cp.ndarray,
 
     if n == 1:
         for i in range(x.shape[0]):
+            d_1 = x[i] - mu_1
             array_out[i] = (
                 b +
-                a_1 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_1 % math.pi)
-                                          - math.pi / 2) / sigma_1, 2)))
+                a_1 * math.exp(-math.pow(math.atan2(math.sin(2 * d_1),
+                                                    math.cos(2 * d_1))
+                                         / (4 * sigma_1), 2)))
     elif n == 2:
         for i in range(x.shape[0]):
+            d_1 = x[i] - mu_1
+            d_2 = x[i] - mu_2
             array_out[i] = (
                 b +
-                a_1 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_1 % math.pi)
-                                          - math.pi / 2) / sigma_1, 2)) +
-                a_2 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_2 % math.pi)
-                                          - math.pi / 2) / sigma_2, 2)))
+                a_1 * math.exp(-math.pow(math.atan2(math.sin(2 * d_1),
+                                                    math.cos(2 * d_1))
+                                         / (4 * sigma_1), 2)) +
+                a_2 * math.exp(-math.pow(math.atan2(math.sin(2 * d_2),
+                                                    math.cos(2 * d_2))
+                                         / (4 * sigma_2), 2)))
     elif n == 3:
         for i in range(x.shape[0]):
+            d_1 = x[i] - mu_1
+            d_2 = x[i] - mu_2
+            d_3 = x[i] - mu_3
             array_out[i] = (
                 b +
-                a_1 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_1 % math.pi)
-                                          - math.pi / 2) / sigma_1, 2)) +
-                a_2 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_2 % math.pi)
-                                          - math.pi / 2) / sigma_2, 2)) +
-                a_3 * math.exp(-math.pow(((x[i] + math.pi / 2 - mu_3 % math.pi)
-                                          - math.pi / 2) / sigma_3, 2)))
+                a_1 * math.exp(-math.pow(math.atan2(math.sin(2 * d_1),
+                                                    math.cos(2 * d_1))
+                                         / (4 * sigma_1), 2)) +
+                a_2 * math.exp(-math.pow(math.atan2(math.sin(2 * d_2),
+                                                    math.cos(2 * d_2))
+                                         / (4 * sigma_2), 2)) +
+                a_3 * math.exp(-math.pow(math.atan2(math.sin(2 * d_3),
+                                                    math.cos(2 * d_3))
+                                         / (4 * sigma_3), 2)))
     return array_out
 
 
@@ -165,9 +177,9 @@ def periodic_gaussian_derivative(x: cp.ndarray,
                   diff)
 
     # exp_1 = np.exp(-((x - mu_1) / sigma_1) ** 2)
-    gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub(x,
-                                              mu_1,
-                                              buf),
+    gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub_mod(x,
+                                                  mu_1,
+                                                  buf),
                                       sigma_1,
                                       buf),
                               2,
@@ -182,9 +194,10 @@ def periodic_gaussian_derivative(x: cp.ndarray,
             -4 * a_1 *
             gpu_sum(gpu_div(gpu_array_mul(diff,
                                           gpu_array_mul(exp_1,
-                                                        gpu_pow(gpu_sub(x,
-                                                                        mu_1,
-                                                                        buf),
+                                                        gpu_pow(gpu_sub_mod(
+                                                            x,
+                                                            mu_1,
+                                                            buf),
                                                                 2,
                                                                 buf),
                                                         buf),
@@ -205,9 +218,9 @@ def periodic_gaussian_derivative(x: cp.ndarray,
     elif n == 2:
 
         # exp_2 = np.exp(-((x - mu_2) / sigma_2) ** 2)
-        gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub(x,
-                                                  mu_2,
-                                                  buf),
+        gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub_mod(x,
+                                                      mu_2,
+                                                      buf),
                                           sigma_2,
                                           buf),
                                   2,
@@ -220,9 +233,10 @@ def periodic_gaussian_derivative(x: cp.ndarray,
             -4 * a_1 *
             gpu_sum(gpu_div(gpu_array_mul(diff,
                                           gpu_array_mul(exp_1,
-                                                        gpu_pow(gpu_sub(x,
-                                                                        mu_1,
-                                                                        buf),
+                                                        gpu_pow(gpu_sub_mod(
+                                                            x,
+                                                            mu_1,
+                                                            buf),
                                                                 2,
                                                                 buf),
                                                         buf),
@@ -238,9 +252,10 @@ def periodic_gaussian_derivative(x: cp.ndarray,
             -4 * a_2 *
             gpu_sum(gpu_div(gpu_array_mul(diff,
                                           gpu_array_mul(exp_2,
-                                                        gpu_pow(gpu_sub(x,
-                                                                        mu_2,
-                                                                        buf),
+                                                        gpu_pow(gpu_sub_mod(
+                                                            x,
+                                                            mu_2,
+                                                            buf),
                                                                 2,
                                                                 buf),
                                                         buf),
@@ -257,9 +272,9 @@ def periodic_gaussian_derivative(x: cp.ndarray,
     elif n == 3:
 
         # exp_2 = np.exp(-((x - mu_2) / sigma_2) ** 2)
-        gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub(x,
-                                                  mu_2,
-                                                  buf),
+        gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub_mod(x,
+                                                      mu_2,
+                                                      buf),
                                           sigma_2,
                                           buf),
                                   2,
@@ -267,9 +282,9 @@ def periodic_gaussian_derivative(x: cp.ndarray,
                           buf),
                 exp_2)
         # exp_3 = np.exp(-((x - mu_3) / sigma_3) ** 2)
-        gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub(x,
-                                                  mu_3,
-                                                  buf),
+        gpu_exp(gpu_minus(gpu_pow(gpu_div(gpu_sub_mod(x,
+                                                      mu_3,
+                                                      buf),
                                           sigma_3,
                                           buf),
                                   2,
@@ -282,9 +297,10 @@ def periodic_gaussian_derivative(x: cp.ndarray,
             -4 * a_1 *
             gpu_sum(gpu_div(gpu_array_mul(diff,
                                           gpu_array_mul(exp_1,
-                                                        gpu_pow(gpu_sub(x,
-                                                                        mu_1,
-                                                                        buf),
+                                                        gpu_pow(gpu_sub_mod(
+                                                            x,
+                                                            mu_1,
+                                                            buf),
                                                                 2,
                                                                 buf),
                                                         buf),
@@ -300,9 +316,10 @@ def periodic_gaussian_derivative(x: cp.ndarray,
             -4 * a_2 *
             gpu_sum(gpu_div(gpu_array_mul(diff,
                                           gpu_array_mul(exp_2,
-                                                        gpu_pow(gpu_sub(x,
-                                                                        mu_2,
-                                                                        buf),
+                                                        gpu_pow(gpu_sub_mod(
+                                                            x,
+                                                            mu_2,
+                                                            buf),
                                                                 2,
                                                                 buf),
                                                         buf),
@@ -318,9 +335,10 @@ def periodic_gaussian_derivative(x: cp.ndarray,
             -4 * a_3 *
             gpu_sum(gpu_div(gpu_array_mul(diff,
                                           gpu_array_mul(exp_3,
-                                                        gpu_pow(gpu_sub(x,
-                                                                        mu_3,
-                                                                        buf),
+                                                        gpu_pow(gpu_sub_mod(
+                                                            x,
+                                                            mu_3,
+                                                            buf),
                                                                 2,
                                                                 buf),
                                                         buf),

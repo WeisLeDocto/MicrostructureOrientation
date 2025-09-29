@@ -51,14 +51,16 @@ def gpu_minus(array_in: cp.ndarray,
                            types.float32,
                            types.float32[:]),
           device=True)
-def gpu_sub(array_in: cp.ndarray,
-            val: float,
-            array_out: cp.ndarray) -> cp.ndarray:
+def gpu_sub_mod(array_in: cp.ndarray,
+                val: float,
+                array_out: cp.ndarray) -> cp.ndarray:
     """Subtracts a constant value to all the elements of a 1-dimensional
-    array."""
+    array, and wraps with a period of pi."""
 
     for i in range(array_in.shape[0]):
-        array_out[i] = array_in[i] - val
+        delta = array_in[i] - val
+        array_out[i] = 0.5 * math.atan2(math.sin(2 * delta),
+                                        math.cos(2 * delta))
     return array_out
 
 
