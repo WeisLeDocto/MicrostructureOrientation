@@ -129,6 +129,9 @@ def process_img(img: np.ndarray,
     del low_thresh, thresh, amp
 
     anisotropy = np.nan_to_num(amp_norm / sig)
+    min_p, max_p = np.percentile(anisotropy, 1), np.percentile(anisotropy, 99)
+    anisotropy = (anisotropy - min_p) / (max_p - min_p)
+    anisotropy = np.clip(anisotropy, 0, 1)
     anisotropy_unique = 1 - np.prod(1 - anisotropy, axis=2)
 
     sig = cp.asnumpy(cp.squeeze(sig))
