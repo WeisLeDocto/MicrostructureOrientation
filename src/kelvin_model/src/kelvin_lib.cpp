@@ -289,38 +289,36 @@ Eigen::Matrix<double, 6, 6> rotate(const Eigen::Matrix<double, 6, 6> tensor,
 
 
 /**
-* Computes the final stress value from the stiffness tensor for each order, the
-* multiplicative factor for each order, and the strain tensor.
+* Computes the final stiffness tensor as the sum of the individual stiffnesses
+* of all orders and all layers.
 */
-Eigen::Matrix<double, 6, 1> final_stress(
-    const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
+Eigen::Matrix<double, 6, 6> final_stiffness(
+    const std::array<std::array<Eigen::Matrix<double, 6, 6>, 5>, 3> &stiffness,
     const Eigen::Matrix<double, 6, 1> strain,
-    const std::array<double, 5> &vals) {
+    const std::array<double, 5> &vals,
+    const std::vector<size_t> &valid_layers,
+    const std::vector<size_t> &valid_orders) {
 
-  /// Initialize order 0
-  Eigen::Matrix<double, 6, 6> stiff_tot = vals[0] * stiffness[0];
-
-  /// Pre-compute the valid orders
-  std::vector<size_t> valid_orders;
+  /// Declare variables
   double factor;
-  #pragma GCC unroll 4
-  #pragma GCC ivdep
-  for (size_t j = 1; j < vals.size(); ++j) {
-    if (vals[j] > 1.0e-12) valid_orders.push_back(j);
-  }
+  Eigen::Matrix<double, 6, 6> stiff_tot = Eigen::Matrix<double, 6, 6>::Zero();
 
-  /// Iterate over all the valid orders
-  for (size_t j : valid_orders) {
+  /// Iterate over all the valid layers
+  for (size_t i : valid_layers) {
 
-    /// For each order greater than 1, there is a multiplicative factor
-    /// dependent on the strain and stiffness
-    factor = strain.dot(stiffness[j] * strain);
+    /// Iterate over all the valid orders
+    for (size_t j : valid_orders) {
 
-    /// The total equivalent stiffness is the sum of the ones for each order
-    stiff_tot += vals[j] * (j + 1) * pow(factor, j) * stiffness[j];
+      /// For each order greater than 1, there is a multiplicative factor
+      /// dependent on the strain and stiffness
+      factor = strain.dot(stiffness[i][j] * strain);
+
+      /// The total equivalent stiffness is the sum of the ones for each order
+      stiff_tot += vals[j] * pow(factor, j) * stiffness[i][j];
+    }
   }
   
-  return stiff_tot * strain;
+  return stiff_tot / valid_layers.size();
   
 }
 
@@ -330,88 +328,50 @@ Eigen::Matrix<double, 6, 1> final_stress(
 * to 0, to be in a plane stress configuration.
 */
 float calc_ezz_plane_stress(
-    const std::array<Eigen::Matrix<double, 6, 6>, 5> &stiffness,
+    const std::array<std::array<Eigen::Matrix<double, 6, 6>, 5>, 3> &stiffness,
     Eigen::Matrix<double, 6, 1> strain,
     const std::array<double, 5> &vals,
+    const std::vector<size_t> &valid_layers,
+    const std::vector<size_t> &valid_orders,
     const double stop_crit,
     const int max_iter) {
 
-  /// Initialize order 0
-  Eigen::Matrix<double, 1, 6> stiff_tot = vals[0] * stiffness[0].row(2);
-  double factor;
-
-  /// Pre-compute the valid orders
-  std::vector<size_t> valid_orders;
-  #pragma GCC unroll 4
-  #pragma GCC ivdep
-  for (size_t j = 1; j < vals.size(); ++j) {
-    if (vals[j] > 1.0e-12) valid_orders.push_back(j);
-  }
-
-  /// Iterate over all the valid orders
-  for (size_t j : valid_orders) {
-
-    /// For each order greater than 1, there is a multiplicative factor
-    /// dependent on the strain and stiffness
-    factor = strain.dot(stiffness[j] * strain);
-
-    /// The total equivalent stiffness is the sum of the ones for each order
-    stiff_tot += vals[j] * (j + 1) * pow(factor, j) * stiffness[j].row(2);
-  }
-
-  /// Compute the zz strain component
-  double szz = stiff_tot.dot(strain);
-
-  /// Stop here if the stress is already close enough to 0
-  if (abs(szz) < stop_crit) return strain(2, 0);
-
-  /// Use a fixed-point method to compute the optimal strain value
-  if (stiff_tot(2) != 0.0) {
-    strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
-                     stiff_tot(1) * strain(1, 0) + 
-                     stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
-  }
-  /// In case the stiffness associated with zz is zero, nothing can be done
-  else {
-    return stiff_tot(0) * strain(0, 0) + stiff_tot(1) * strain(1, 0) 
-        + stiff_tot(3) * strain(3, 0);
-  }
+  /// Declare variables
+  Eigen::Matrix<double, 6, 6> stiff_tot;
+  Eigen::Matrix<double, 6, 1> stress;
+  int n = 0;
 
   /// Iterate until reaching a solution or until reaching max iterations
-  int n = 0;
   while (n < max_iter) {
     ++n;
 
-    /// Initialize order 0
-    stiff_tot = vals[0] * stiffness[0].row(2);
-
-    /// Iterate over all the valid orders
-    for (size_t j : valid_orders) {
-
-      /// For each order greater than 1, there is a multiplicative factor
-      /// dependent on the strain and stiffness
-      factor = strain.dot(stiffness[j] * strain);
-
-      /// The total equivalent stiffness is the sum of the ones for each order
-      stiff_tot += vals[j] * (j + 1) * pow(factor, j) * stiffness[j].row(2);
-    }
-
-    /// Compute the zz strain component
-    szz = stiff_tot.dot(strain);
+    /// Calculate stress
+    stiff_tot = final_stiffness(stiffness,
+                                strain,
+                                vals,
+                                valid_layers,
+                                valid_orders);
+    stress = stiff_tot * strain;
 
     /// Stop here if the stress is already close enough to 0
-    if (abs(szz) < stop_crit) return strain(2, 0);
+    if (abs(stress(2, 0)) < stop_crit *
+        std::max({abs(stress(0, 0)), abs(stress(1, 0)), abs(stress(3, 0))})) {
+      return strain(2, 0);
+    }
 
     /// Use a fixed-point method to compute the optimal strain value
-    if (stiff_tot(2) != 0.0) {
-      strain(2, 0) = -(stiff_tot(0) * strain(0, 0) + 
-                       stiff_tot(1) * strain(1, 0) + 
-                       stiff_tot(3) * strain(3, 0)) / stiff_tot(2);
+    if (abs(stiff_tot(2, 2)) > 0.001 *
+        std::min({abs(stiff_tot(2, 0)),
+                  abs(stiff_tot(2, 1)),
+                  abs(stiff_tot(2, 3))})) {
+      strain(2, 0) = -(stiff_tot(2, 0) * strain(0, 0) +
+                       stiff_tot(2, 1) * strain(1, 0) +
+                       sqrt(2) * stiff_tot(2, 3) * strain(3, 0))
+                       / stiff_tot(2, 2);
     }
     /// In case the stiffness associated with zz is zero, nothing can be done
     else {
-      return stiff_tot(0) * strain(0, 0) + stiff_tot(1) * strain(1, 0) 
-          + stiff_tot(3) * strain(3, 0);
+      return strain(2, 0);
     }
     
   }
@@ -486,10 +446,10 @@ void calc_stress(double exx,
   const std::array<double, 5> lam5 = {lam51, lam52, lam53, lam54, lam55};
 
   /// Initialize the stiffness values with zeros
-  std::array<Eigen::Matrix<double, 6, 6>, 5> stiffness;
-  std::fill(stiffness.begin(), 
-            stiffness.end(), 
-            Eigen::Matrix<double, 6, 6>::Zero());
+  std::array<std::array<Eigen::Matrix<double, 6, 6>, 5>, 3> stiffness;
+  for (std::array<Eigen::Matrix<double, 6, 6>, 5>& row: stiffness) {
+    row.fill(Eigen::Matrix<double, 6, 6>::Zero());
+  }
   Eigen::Matrix<double, 6, 6> homogenized;
 
   /// Pre-compute the valid orders
@@ -529,14 +489,9 @@ void calc_stress(double exx,
       }
 
       /// Rotate the homogenized tensor to align it with the fibers
-      stiffness[j] += rotate(homogenized, theta[i]);
+      stiffness[i][j] = rotate(homogenized, theta[i]);
       
     }
-  }
-
-  /// The final stiffness tensor is averaged over the detected layers
-  for (size_t j : valid_orders) {
-    stiffness[j] = stiffness[j] / valid_layers.size();
   }
 
   /// Need to consider 3D to compute the stress in plane stress hypothesis
@@ -552,14 +507,15 @@ void calc_stress(double exx,
   strain_3d(2, 0) = calc_ezz_plane_stress(
       stiffness, 
       strain_3d, 
-      vals, 
-      std::max(exx, std::max(eyy, exy)) / 1000.0,
+      vals,
+      valid_layers,
+      valid_orders,
+      0.001,
       100);
 
   /// Finally, compute the final 3D stress tensor
-  const Eigen::Matrix<double, 6, 1> sig_3d = density * final_stress(stiffness,
-                                                                    strain_3d,
-                                                                    vals);
+  const Eigen::Matrix<double, 6, 1> sig_3d = density * final_stiffness(
+      stiffness, strain_3d, vals, valid_layers, valid_orders) * strain_3d;
   *sxx = sig_3d(0, 0);
   *syy = sig_3d(1, 0);
   *sxy = sig_3d(3, 0);
