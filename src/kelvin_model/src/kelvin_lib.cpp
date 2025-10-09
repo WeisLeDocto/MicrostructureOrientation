@@ -429,6 +429,9 @@ float calc_ezz_plane_stress(
 void calc_stress(double exx,
                  double eyy,
                  double exy,
+                 double m_1,
+                 double m_2,
+                 double m_3,
                  double lamh,
                  double lam11,
                  double lam21,
@@ -471,17 +474,10 @@ void calc_stress(double exx,
                  double* syy,
                  double* sxy) {
 
-  /// Compute the angle of the first eigenvector
-  double theta_load;
-  if (abs(exy) < 1e-12 && abs(exx - eyy) < 1e-12) {
-      theta_load = 0.0;
-  } else {
-      theta_load = 0.5 * atan2(2.0 * exy, exx - eyy);
-  }
-
   /// Organize the values in arrays for convenience
   const double sigstd[3] = {sigma_1, sigma_2, sigma_3};
   const double theta[3] = {theta_1, theta_2, theta_3};
+  const std::array<double, 3> m_vals = {m_1, m_2, m_3};
   const std::array<double, 5> vals = {val1, val2, val3, val4, val5};
   const std::array<double, 5> lam1 = {lam11, lam12, lam13, lam14, lam15};
   const std::array<double, 5> lam2 = {lam21, lam22, lam23, lam24, lam25};
@@ -511,22 +507,6 @@ void calc_stress(double exx,
   for (size_t i = 0; i < 3; ++i) {
     /// A standard deviation too low indicates that a layer was not detected
     if (sigstd[i] > 0.01 || i < 1) valid_layers.push_back(i);
-  }
-
-  /// Pre-compute the m values
-  std::array<double, 3> m_vals = {1.0, 1.0, 1.0};
-  for (size_t i : valid_layers) {
-    /// Compute the integration factor as a function of the angle between the
-    /// load and the fibers
-    double m = cos(2.0 * (theta_load - theta[i]));
-    /// Correct by the factor to account for anisotropy in the strain
-    const double denom = 2.0 * pow(exx * exx + eyy * eyy - exx * eyy +
-                                   3.0 * exy * exy, 1.5);
-    if (abs(denom) > 1.0e-12) {
-      m *= (2.0 * exx * exx + 2.0 * eyy * eyy - 5.0 * exx * eyy +
-            9.0 * exy * exy) * (exx + eyy) / denom;
-    }
-    m_vals[i] = m;
   }
 
   /// Iterate over up to three tissue layers
@@ -602,6 +582,9 @@ void calc_stresses(const PixelData* input,
       calc_stress(input[idx].exx,
                   input[idx].eyy,
                   input[idx].exy,
+                  input[idx].m_1,
+                  input[idx].m_2,
+                  input[idx].m_3,
                   params->lambda_h,
                   params->lambda_11,
                   params->lambda_21,

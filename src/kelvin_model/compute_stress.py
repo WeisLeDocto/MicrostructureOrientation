@@ -9,6 +9,9 @@ def compute_stress(lib_path: Path,
                    exx: np.ndarray,
                    eyy: np.ndarray,
                    exy: np.ndarray,
+                   m_1: np.ndarray,
+                   m_2: np.ndarray,
+                   m_3: np.ndarray,
                    lambda_h: float,
                    lambda_11: float,
                    lambda_21: float,
@@ -47,6 +50,12 @@ def compute_stress(lib_path: Path,
         exx: Numpy array containing for all pixels the xx strain.
         eyy: Numpy array containing for all pixels the yy strain.
         exy: Numpy array containing for all pixels the xy strain.
+        m_1: Value of the parameter to use for the power-mean integration, for
+            the first layer.
+        m_2: Value of the parameter to use for the power-mean integration, for
+            the second layer.
+        m_3: Value of the parameter to use for the power-mean integration, for
+            the third layer.
         lambda_h: Value of the hydrostatic eigenvalue, common to all orders.
         lambda_11: Value of the first deviatoric eigenvalue for order 1.
         lambda_21: Value of the second deviatoric eigenvalue for order 1.
@@ -94,17 +103,22 @@ def compute_stress(lib_path: Path,
     # Array for storing the result stress
     stress = np.zeros((*exx.shape, 3), dtype=np.float64, order='C')
 
-    # Store the
+    # Store the measured data in a dedicated array
     input_dtype = np.dtype([('exx', np.float64), ('eyy', np.float64),
-                            ('exy', np.float64), ('theta_1', np.float64),
-                            ('theta_2', np.float64), ('theta_3', np.float64),
-                            ('sigma_1', np.float64), ('sigma_2', np.float64),
-                            ('sigma_3', np.float64), ('density', np.float64)],
+                            ('exy', np.float64), ('m_1', np.float64),
+                            ('m_2', np.float64), ('m_3', np.float64),
+                            ('theta_1', np.float64), ('theta_2', np.float64),
+                            ('theta_3', np.float64), ('sigma_1', np.float64),
+                            ('sigma_2', np.float64), ('sigma_3', np.float64),
+                            ('density', np.float64)],
                            align=True)
     input_data = np.zeros(exx.shape, dtype=input_dtype)
     input_data['exx'] = exx
     input_data['eyy'] = eyy
     input_data['exy'] = exy
+    input_data['m_1'] = m_1
+    input_data['m_2'] = m_2
+    input_data['m_3'] = m_3
     input_data['theta_1'] = theta_1
     input_data['theta_2'] = theta_2
     input_data['theta_3'] = theta_3

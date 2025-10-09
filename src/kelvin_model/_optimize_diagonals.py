@@ -14,6 +14,9 @@ def error_diags_one_image(lib_path: Path,
                           exx: np.ndarray,
                           eyy: np.ndarray,
                           exy: np.ndarray,
+                          m_1: np.ndarray,
+                          m_2: np.ndarray,
+                          m_3: np.ndarray,
                           lambda_h: float,
                           lambda_11: float,
                           lambda_21: float,
@@ -56,6 +59,12 @@ def error_diags_one_image(lib_path: Path,
         exx: Numpy array containing for all pixels the xx strain.
         eyy: Numpy array containing for all pixels the yy strain.
         exy: Numpy array containing for all pixels the xy strain.
+        m_1: Numpy array containing for all pixels the m value for the first
+            layer.
+        m_2: Numpy array containing for all pixels the m value for the second
+            layer.
+        m_3: Numpy array containing for all pixels the m value for the third
+            layer.
         lambda_h: Value of the hydrostatic eigenvalue, common to all orders.
         lambda_11: Value of the first deviatoric eigenvalue for order 1.
         lambda_21: Value of the second deviatoric eigenvalue for order 1.
@@ -108,6 +117,9 @@ def error_diags_one_image(lib_path: Path,
     exx = np.nan_to_num(exx)
     eyy = np.nan_to_num(eyy)
     exy = np.nan_to_num(exy)
+    m_1 = np.nan_to_num(m_1)
+    m_2 = np.nan_to_num(m_2)
+    m_3 = np.nan_to_num(m_3)
     theta_1 = np.nan_to_num(theta_1)
     theta_2 = np.nan_to_num(theta_2)
     theta_3 = np.nan_to_num(theta_3)
@@ -117,53 +129,33 @@ def error_diags_one_image(lib_path: Path,
     density = np.nan_to_num(density)
     
     # Interpolate the fields on the diagonals
-    (exx_diags, eyy_diags, exy_diags, theta_1_diags, theta_2_diags,
-     theta_3_diags, sigma_1_diags, sigma_2_diags, sigma_3_diags,
-     density_diags) = diagonals_interpolator(exx,
-                                             eyy,
-                                             exy,
-                                             interp_pts,
-                                             theta_1,
-                                             theta_2,
-                                             theta_3,
-                                             sigma_1,
-                                             sigma_2,
-                                             sigma_3,
-                                             density)
+    (exx_diags, eyy_diags, exy_diags, m_1_diags, m_2_diags, m_3_diags,
+     theta_1_diags, theta_2_diags, theta_3_diags, sigma_1_diags, sigma_2_diags,
+     sigma_3_diags, density_diags) = diagonals_interpolator(exx,
+                                                            eyy,
+                                                            exy,
+                                                            m_1,
+                                                            m_2,
+                                                            m_3,
+                                                            interp_pts,
+                                                            theta_1,
+                                                            theta_2,
+                                                            theta_3,
+                                                            sigma_1,
+                                                            sigma_2,
+                                                            sigma_3,
+                                                            density)
     
     # Calculate the stress values
-    sxx, syy, sxy = compute_stress(lib_path,
-                                   exx_diags,
-                                   eyy_diags,
-                                   exy_diags,
-                                   lambda_h,
-                                   lambda_11,
-                                   lambda_21,
-                                   lambda_51,
-                                   lambda_12,
-                                   lambda_22,
-                                   lambda_52,
-                                   lambda_13,
-                                   lambda_23,
-                                   lambda_53,
-                                   lambda_14,
-                                   lambda_24,
-                                   lambda_54,
-                                   lambda_15,
-                                   lambda_25,
-                                   lambda_55,
-                                   val1,
-                                   val2,
-                                   val3,
-                                   val4,
-                                   val5,
-                                   theta_1_diags,
-                                   theta_2_diags,
-                                   theta_3_diags,
-                                   sigma_1_diags,
-                                   sigma_2_diags,
-                                   sigma_3_diags,
-                                   density_diags)
+    sxx, syy, sxy = compute_stress(lib_path, exx_diags, eyy_diags, exy_diags,
+                                   m_1_diags, m_2_diags, m_3_diags, lambda_h,
+                                   lambda_11, lambda_21, lambda_51, lambda_12,
+                                   lambda_22, lambda_52, lambda_13, lambda_23,
+                                   lambda_53, lambda_14, lambda_24, lambda_54,
+                                   lambda_15, lambda_25, lambda_55, val1, val2,
+                                   val3, val4, val5, theta_1_diags,
+                                   theta_2_diags, theta_3_diags, sigma_1_diags,
+                                   sigma_2_diags, sigma_3_diags, density_diags)
         
     # Derive the force from the stress fields
     comp_force_x, _ = stress_diag_to_force(sxx,
@@ -211,6 +203,9 @@ def error_diagonals(lib_path: Path,
                     sigma_2: np.ndarray,
                     sigma_3: np.ndarray,
                     density: np.ndarray,
+                    m_1: np.ndarray,
+                    m_2: np.ndarray,
+                    m_3: np.ndarray,
                     interp_pts: np.ndarray,
                     normals: np.ndarray,
                     scale: float,
@@ -265,6 +260,12 @@ def error_diagonals(lib_path: Path,
             deviation of the second tissue layer.
         sigma_3: Numpy array containing for all pixels the local standard
             deviation of the third tissue layer.
+        m_1: Numpy array containing for all pixels the m value for the first
+            layer.
+        m_2: Numpy array containing for all pixels the m value for the second
+            layer.
+        m_3: Numpy array containing for all pixels the m value for the third
+            layer.
         density: Numpy array containing for all pixels the local density of the
             tissue.
         interp_pts: A numpy array containing all the points over which to
@@ -296,6 +297,9 @@ def error_diagonals(lib_path: Path,
                                            exx,
                                            eyy,
                                            exy,
+                                           m_1,
+                                           m_2,
+                                           m_3,
                                            lambda_h,
                                            lambda_11,
                                            lambda_21,

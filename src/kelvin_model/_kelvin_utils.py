@@ -25,6 +25,9 @@ def prepare_data(ref_img: np.ndarray,
                             np.ndarray,
                             np.ndarray,
                             np.ndarray,
+                            np.ndarray,
+                            np.ndarray,
+                            np.ndarray,
                             np.ndarray]:
     """Takes the input data and computes various other values from it.
 
@@ -61,12 +64,16 @@ def prepare_data(ref_img: np.ndarray,
                              for def_img in def_images))
 
     # Read the angle and standard deviation values from the input data
-    sigma_1 = gauss_fit[:, :, 0]
-    sigma_2 = np.nan_to_num(gauss_fit[:, :, 2])
-    sigma_3 = np.nan_to_num(gauss_fit[:, :, 4])
-    theta_1 = peaks[:, :, 0]
-    theta_2 = np.nan_to_num(peaks[:, :, 1])
-    theta_3 = np.nan_to_num(peaks[:, :, 2])
+    sigma_1 = gauss_fit[..., 0]
+    sigma_2 = np.nan_to_num(gauss_fit[..., 2])
+    sigma_3 = np.nan_to_num(gauss_fit[..., 4])
+    theta_1 = peaks[..., 0]
+    theta_2 = np.nan_to_num(peaks[..., 1])
+    theta_3 = np.nan_to_num(peaks[..., 2])
+
+    m_1 = np.cos(2 * np.deg2rad(theta_1))
+    m_2 = np.cos(2 * np.deg2rad(theta_2))
+    m_3 = np.cos(2 * np.deg2rad(theta_3))
 
     low_cutoff = ref_img.shape[1] // 10
     high_cutoff = (9 * ref_img.shape[1]) // 10
@@ -96,12 +103,15 @@ def prepare_data(ref_img: np.ndarray,
     normals = normals[..., np.newaxis]
 
     return (exxs, eyys, exys, sigma_1, sigma_2, sigma_3, theta_1, theta_2,
-            theta_3, interp_pts, normals)
+            theta_3, m_1, m_2, m_3, interp_pts, normals)
 
 
 def diagonals_interpolator(exx: np.ndarray,
                            eyy: np.ndarray,
                            exy: np.ndarray,
+                           m_1: np.ndarray,
+                           m_2: np.ndarray,
+                           m_3: np.ndarray,
                            interp_pts: np.ndarray,
                            theta_1: np.ndarray,
                            theta_2: np.ndarray,
@@ -119,6 +129,9 @@ def diagonals_interpolator(exx: np.ndarray,
                                       np.ndarray,
                                       np.ndarray,
                                       np.ndarray,
+                                      np.ndarray,
+                                      np.ndarray,
+                                      np.ndarray,
                                       np.ndarray]:
     """Performs interpolation of the various fields describing the samples on
     the provided interpolation points, and returns the corresponding
@@ -128,6 +141,12 @@ def diagonals_interpolator(exx: np.ndarray,
         exx: Numpy array containing for all pixels the xx strain.
         eyy: Numpy array containing for all pixels the yy strain.
         exy: Numpy array containing for all pixels the xy strain.
+        m_1: Value of the parameter to use for the power-mean integration, for
+            the first layer.
+        m_2: Value of the parameter to use for the power-mean integration, for
+            the second layer.
+        m_3: Value of the parameter to use for the power-mean integration, for
+            the third layer.
         interp_pts: A numpy array containing all the points over which to
             compute the stress for calculating the final error.
         theta_1: Numpy array containing for all pixels the local angle of the
@@ -146,7 +165,8 @@ def diagonals_interpolator(exx: np.ndarray,
             tissue.
 
     Returns:
-        The exx strain, eyy strain, exy strain, angle for the first layer,
+        The exx strain, eyy strain, exy strain, m for the first layer, m for
+        the second layer, m for the third layer, angle for the first layer,
         angle for the second layer, angle for the third layer, standard
         deviation for the first layer, standard deviation for the second layer,
         standard deviation for the third layer, and density, interpolated over
@@ -164,6 +184,18 @@ def diagonals_interpolator(exx: np.ndarray,
     exx_diags = exx_int(interp_pts)
     eyy_diags = eyy_int(interp_pts)
     exy_diags = exy_int(interp_pts)
+
+    # Build interpolators for the m fields and compute m on the provided
+    # diagonals
+    m_1_int = RegularGridInterpolator((np.arange(m_1.shape[0]),
+                                       np.arange(m_1.shape[1])), m_1)
+    m_2_int = RegularGridInterpolator((np.arange(m_2.shape[0]),
+                                       np.arange(m_2.shape[1])), m_2)
+    m_3_int = RegularGridInterpolator((np.arange(m_3.shape[0]),
+                                       np.arange(m_3.shape[1])), m_3)
+    m_1_diags = m_1_int(interp_pts)
+    m_2_diags = m_2_int(interp_pts)
+    m_3_diags = m_3_int(interp_pts)
 
     # Build interpolators for the angle fields and compute the angles on the
     # provided diagonals
@@ -202,9 +234,9 @@ def diagonals_interpolator(exx: np.ndarray,
                                           density)
     density_diags = density_int(interp_pts)
 
-    return (exx_diags, eyy_diags, exy_diags, theta_1_diags, theta_2_diags,
-            theta_3_diags, sigma_1_diags, sigma_2_diags, sigma_3_diags,
-            density_diags)
+    return (exx_diags, eyy_diags, exy_diags, m_1_diags, m_2_diags, m_3_diags,
+            theta_1_diags, theta_2_diags, theta_3_diags, sigma_1_diags,
+            sigma_2_diags, sigma_3_diags, density_diags)
 
 
 def calc_density(density_base: np.ndarray,

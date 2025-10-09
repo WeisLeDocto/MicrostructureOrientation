@@ -29,6 +29,9 @@ def _least_square_wrapper(x: np.ndarray,
                           sigma_1: np.ndarray,
                           sigma_2: np.ndarray,
                           sigma_3: np.ndarray,
+                          m_1: np.ndarray,
+                          m_2: np.ndarray,
+                          m_3: np.ndarray,
                           density_base: np.ndarray,
                           lib_path: Path,
                           interp_pts: np.ndarray,
@@ -76,6 +79,12 @@ def _least_square_wrapper(x: np.ndarray,
             deviation of the second tissue layer.
         sigma_3: Numpy array containing for all pixels the local standard
             deviation of the third tissue layer.
+        m_1: Numpy array containing for all pixels the m value for the first
+            layer.
+        m_2: Numpy array containing for all pixels the m value for the second
+            layer.
+        m_3: Numpy array containing for all pixels the m value for the third
+            layer.
         density_base: The base image from which to compute the density,
             normally one the raw images acquired for exposure fusion.
         lib_path: Path to the .so file containing the shared library for
@@ -161,6 +170,9 @@ def _least_square_wrapper(x: np.ndarray,
                                sigma_1,
                                sigma_2,
                                sigma_3,
+                               m_1,
+                               m_2,
+                               m_3,
                                density,
                                interp_pts,
                                normals,
@@ -271,6 +283,7 @@ def optimize_diagonals(lib_path: Path,
     (exxs, eyys, exys,
      sigma_1, sigma_2, sigma_3,
      theta_1, theta_2, theta_3,
+     m_1, m_2, m_3,
      interp_pts, normals) = prepare_data(ref_img,
                                          gauss_fit,
                                          peaks,
@@ -324,6 +337,9 @@ def optimize_diagonals(lib_path: Path,
                                 'sigma_1': sigma_1,
                                 'sigma_2': sigma_2,
                                 'sigma_3': sigma_3,
+                                'm_1': m_1,
+                                'm_2': m_2,
+                                'm_3': m_3,
                                 'density_base': density_base,
                                 'lib_path': lib_path,
                                 'interp_pts': interp_pts,

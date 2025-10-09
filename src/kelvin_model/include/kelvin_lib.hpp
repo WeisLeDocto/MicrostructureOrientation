@@ -12,6 +12,9 @@ typedef struct {
     double exx;
     double eyy;
     double exy;
+    double m_1;
+    double m_2;
+    double m_3;
     double theta_1;
     double theta_2;
     double theta_3;
