@@ -294,11 +294,12 @@ def optimize_diagonals(lib_path: Path,
     # Define the bounds for all the parameters
     nb_max = 18
     low_bounds = np.array((1.0e-5,) * nb_max)
-    low_bounds[0] = 0.0
-    low_bounds[1] = 0.0
-    low_bounds[2] = 1.0
+    low_bounds[0] = 0.0  # Minimum density
+    low_bounds[1] = 0.0  # Contrast
+    low_bounds[2] = 1.0  # Lambda_h
     high_bounds = np.array((np.inf,) * nb_max)
-    high_bounds[0] = 0.99
+    high_bounds[0] = 0.9999  # Minimum density
+    high_bounds[1] = 4.0  # Contrast
 
     # Create the lists of parameters to fit or fixed, depending on the values
     # of the factors for each order
@@ -311,7 +312,7 @@ def optimize_diagonals(lib_path: Path,
     x0 = x0[to_fit]
     bounds = Bounds(lb=low_bounds, ub=high_bounds)
     x_scale = np.ones(nb_max, dtype=np.float64)
-    # x_scale[6:] = 10.0
+    x_scale[6:] = 10.0
     x_scale = x_scale[to_fit]
 
     # Perform the optimization
