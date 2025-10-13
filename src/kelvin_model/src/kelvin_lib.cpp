@@ -19,8 +19,7 @@ Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h,
                                                      double lambda_4, 
                                                      double lambda_5, 
                                                      double sigma,
-                                                     double m,
-                                                     bool skip_z = false) {
+                                                     double m) {
   
   Eigen::Matrix<double, 6, 6> integrated = Eigen::Matrix<double, 6, 6>::Zero();
 
@@ -49,6 +48,8 @@ Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h,
   const double term_E = lam1_m + 3.0 * lam2_m - 4.0 * lamh_m;
   const double term_F = 3.0 * lam1_m + lam2_m + 4.0 * lam5_m;
   const double term_G = 3.0 * lam1_m - 3.0 * lam2_m;
+  const double term_H = lam3_m + lam4_m;
+  const double term_J = lam3_m - lam4_m;
 
   /// Compute the terms on the upper half of the tensor
   integrated(0, 0) = 1.0 / 48.0 * (term_A + term_B * exp_neg2s + term_C 
@@ -62,18 +63,8 @@ Eigen::Matrix<double, 6, 6> kelvin_integrated_tensor(double lambda_h,
       * lamh_m;
   integrated(3, 3) = 1.0 / 8.0 * (term_F + (-3.0 * lam1_m - lam2_m + 4.0 
       * lam5_m) * exp_neg8s);
-
-  /// Only compute the terms in the z direction if requested
-  if (skip_z) {
-    integrated(4, 4) = 1.0;
-    integrated(5, 5) = 1.0;
-  }
-  else {
-    const double term_H = lam3_m + lam4_m;
-    const double term_J = lam3_m - lam4_m;
-    integrated(4, 4) = 0.5 * (term_H - term_J * exp_neg2s);
-    integrated(5, 5) = 0.5 * (term_H + term_J * exp_neg2s);
-  }
+  integrated(4, 4) = 0.5 * (term_H - term_J * exp_neg2s);
+  integrated(5, 5) = 0.5 * (term_H + term_J * exp_neg2s);
 
   /// The tensor is symmetrical, so the lower half terms can just be copied
   integrated.triangularView<Eigen::Lower>() = integrated.transpose();
@@ -95,8 +86,7 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
                                                  double lambda_4, 
                                                  double lambda_5, 
                                                  double sigma,
-                                                 double m,
-                                                 bool skip_z = false) {
+                                                 double m) {
   
   Eigen::Matrix<double, 6, 6> integrated = Eigen::Matrix<double, 6, 6>::Zero();
 
@@ -134,6 +124,8 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
   const double term_E = lam1_l + 3.0 * lam2_l - 4.0 * lamh_l;
   const double term_F = 3.0 * lam1_l + lam2_l + 4.0 * lam5_l;
   const double term_G = 3.0 * lam1_l - 3.0 * lam2_l;
+  const double term_H = lam3_l + lam4_l;
+  const double term_J = lam3_l - lam4_l;
   
   const double lam1_sq = lam1_l * lam1_l;
   const double lam2_sq = lam2_l * lam2_l;
@@ -142,6 +134,9 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
   const double lam1_lam5 = lam1_l * lam5_l;
   const double lam2_lam5 = lam2_l * lam5_l;
   const double cross_term = lam1_sq - 2.0 * lam1_lam2 + lam2_sq;
+  const double z_cross = lam3_l * lam3_l - 2.0 * lam3_l * lam4_l + lam4_l
+        * lam4_l;
+  const double z_term = z_cross * m * (exp_4s - 1.0) * exp_neg4s;
   
   const double cross_term_m = cross_term * m;
   const double quad_term1 = 19.0 * lam1_sq - 14.0 * lam1_lam2 + 11.0 * lam2_sq 
@@ -165,18 +160,8 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
       * lamh_l;
   integrated(3, 3) = 1.0 / 8.0 * (term_F * exp_8s - 3.0 * lam1_l - lam2_l 
       + 4.0 * lam5_l) * exp_neg8s;
-
-  /// Only compute the terms in the z direction if requested
-  if (skip_z) {
-    integrated(4, 4) = 1.0;
-    integrated(5, 5) = 1.0;
-  }
-  else {
-    const double term_H = lam3_l + lam4_l;
-    const double term_J = lam3_l - lam4_l;
-    integrated(4, 4) = 0.5 * (term_H * exp_2s - term_J) * exp_neg2s;
-    integrated(5, 5) = 0.5 * (term_H * exp_2s + term_J) * exp_neg2s;
-  }
+  integrated(4, 4) = 0.5 * (term_H * exp_2s - term_J) * exp_neg2s;
+  integrated(5, 5) = 0.5 * (term_H * exp_2s + term_J) * exp_neg2s;
 
   /// The result is a sum of two terms, computing the second one here
   integrated(0, 0) += 1.0 / 256.0 * m * (quad_term1 * exp_16s +  4.0 
@@ -200,15 +185,8 @@ Eigen::Matrix<double, 6, 6> zero_m_approximation(double lambda_h,
   integrated(2, 2) += 1.0 / 16.0 * cross_term_m * (exp_4s - 1.0) * exp_neg4s;
   integrated(3, 3) += 1.0 / 128.0 * m * (quad_term4 * exp_16s - 6.0 
       * cross_term * exp_8s - quad_term3) * exp_neg16s;
-
-  /// Only compute the terms in the z direction if requested
-  if (!skip_z) {
-    const double z_cross = lam3_l * lam3_l - 2.0 * lam3_l * lam4_l + lam4_l 
-        * lam4_l;
-    const double z_term = z_cross * m * (exp_4s - 1.0) * exp_neg4s;
-    integrated(4, 4) += 0.125 * z_term;
-    integrated(5, 5) += 0.125 * z_term;
-  }
+  integrated(4, 4) += 0.125 * z_term;
+  integrated(5, 5) += 0.125 * z_term;
 
   /// The tensor is symmetrical, so the lower half terms can just be copied
   integrated.triangularView<Eigen::Lower>() = integrated.transpose();
@@ -480,12 +458,12 @@ void calc_stress(double exx,
       if (abs(m_vals[i]) < 0.01) {
         homogenized = zero_m_approximation(
           lamh, lam1[j], lam2[j], lam3[j], lam4[j], lam5[j], sigstd[i],
-          m_vals[i], true).exp();
+          m_vals[i]).exp();
       }
       else {
         homogenized = kelvin_integrated_tensor(
           lamh, lam1[j], lam2[j], lam3[j], lam4[j], lam5[j], sigstd[i],
-          m_vals[i], true).pow(1.0 / m_vals[i]);
+          m_vals[i]).pow(1.0 / m_vals[i]);
       }
 
       /// Rotate the homogenized tensor to align it with the fibers
