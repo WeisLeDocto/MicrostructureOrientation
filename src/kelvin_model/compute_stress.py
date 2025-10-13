@@ -158,7 +158,7 @@ def compute_stress(lib_path: Path,
                              ('val3', np.float64),
                              ('val4', np.float64),
                              ('val5', np.float64)], align=True)
-    lambda_params = np.array((lambda_h, lambda_11, lambda_21, lambda_51,
+    lambda_params = np.array((lambda_h, lambda_11, lambda_21, lambda_21,
                               lambda_51, lambda_51, lambda_12, lambda_22,
                               lambda_52, lambda_52, lambda_52, lambda_13,
                               lambda_23, lambda_53, lambda_53, lambda_53,
