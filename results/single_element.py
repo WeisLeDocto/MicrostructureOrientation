@@ -8,6 +8,7 @@ from scipy.optimize import least_squares
 from matplotlib import pyplot as plt
 from tqdm.auto import tqdm
 import sys
+from itertools import batched
 
 
 class EzzBuf:
@@ -498,6 +499,288 @@ if __name__ == '__main__':
     avg = np.sum(np.abs(baseline)) / nb_no_z
     print(error)
     print(avg)
+
+    angles = (0.0, 0.0, 0.0)
+    sigma = (0.5, 0.0, 0.0)
+    dens = 1.0
+
+    lh = 1000.0
+    l1 = (1.0, 1.0, 1.0, 1.0, 1.0)
+    l2 = (1.0, 1.0, 1.0, 1.0, 1.0)
+    l3 = (1.0, 1.0, 1.0, 1.0, 1.0)
+    l4 = (1.0, 1.0, 1.0, 1.0, 1.0)
+    l5 = (1.0, 1.0, 1.0, 1.0, 1.0)
+
+    coeffs = (1.0, 0.0, 0.0, 0.0, 0.0)
+
+    stress = (0.0, 0.0, 1.0)
+
+    if (abs(stress[2]) < 0.001
+            and abs(stress[0] - stress[1]) < 0.001):
+        m = (0.0, 0.0, 0.0)
+    else:
+        m = tuple(cos(2 * (theta - 0.5 * atan2(2 * stress[2],
+                                               stress[0] -
+                                               stress[1])))
+                  for theta in angles)
+
+    strain = least_squares(least_square_wrapper,
+                           x0=(0.0, 0.0, 0.0),
+                           kwargs={'target_stress': stress,
+                                   'm_vals': m,
+                                   'lamh': lh,
+                                   'lam1': l1,
+                                   'lam2': l2,
+                                   'lam3': l3,
+                                   'lam4': l4,
+                                   'lam5': l5,
+                                   'vals': coeffs,
+                                   'theta': angles,
+                                   'sigstd': sigma,
+                                   'density': dens}).x
+
+    (_, _, sxy_0), _ = calc_stress(strain[0],
+                                   strain[1],
+                                   strain[2],
+                                   m,
+                                   lh,
+                                   l1,
+                                   l2,
+                                   l3,
+                                   l3,
+                                   l5,
+                                   coeffs,
+                                   angles,
+                                   sigma,
+                                   dens)
+
+    plan = ((0.8, 1.0, 1.0),
+            (1.2, 1.0, 1.0),
+            (1.0, 0.8, 1.0),
+            (1.0, 1.2, 1.0),
+            (1.0, 1.0, 0.8),
+            (1.0, 1.0, 1.2))
+
+    res = list()
+
+    for (f1, f2, f5) in plan:
+        lam1 = tuple(e * f1 for e in l1)
+        lam2 = tuple(e * f2 for e in l2)
+        lam5 = tuple(e * f5 for e in l5)
+
+        (_, _, sxy), _ = calc_stress(strain[0],
+                                     strain[1],
+                                     strain[2],
+                                     m,
+                                     lh,
+                                     lam1,
+                                     lam2,
+                                     lam2,
+                                     lam5,
+                                     lam5,
+                                     coeffs,
+                                     angles,
+                                     sigma,
+                                     dens)
+        res.append((sxy - sxy_0) / sxy_0)
+
+    fig = plt.figure(figsize=(17, 3))
+    ax = fig.add_subplot(1, 3, 1)
+
+    ax.vlines(0, -0.225, 1.225, color='k')
+    ax.spines[['right', 'top', 'left']].set_visible(False)
+    ax.yaxis.set_tick_params(length=0, labelsize=12)
+    ax.set_title(r'Relative variation in $\tau_{xy}$', fontsize=12)
+    ax.set_xticks((-0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15))
+
+    ax.barh((0.5, 0.5, 0.0, 0.0, 1.0, 1.0),
+            res, align='center', height=0.45,
+            color=('coral', 'deepskyblue') * 3,
+            tick_label=(r'$\lambda_1$', r'$\lambda_1$',
+                        r'$\lambda_2$', r'$\lambda_2$',
+                        r'$\lambda_5$', r'$\lambda_5$'))
+
+    ax.set_xlim((-max(*map(abs, ax.get_xlim())),
+                 max(*map(abs, ax.get_xlim()))))
+
+    stress = (1.0, 0.0, 0.0)
+
+    if (abs(stress[2]) < 0.001
+            and abs(stress[0] - stress[1]) < 0.001):
+        m = (0.0, 0.0, 0.0)
+    else:
+        m = tuple(cos(2 * (theta - 0.5 * atan2(2 * stress[2],
+                                               stress[0] -
+                                               stress[1])))
+                  for theta in angles)
+
+    strain = least_squares(least_square_wrapper,
+                           x0=(0.0, 0.0, 0.0),
+                           kwargs={'target_stress': stress,
+                                   'm_vals': m,
+                                   'lamh': lh,
+                                   'lam1': l1,
+                                   'lam2': l2,
+                                   'lam3': l3,
+                                   'lam4': l4,
+                                   'lam5': l5,
+                                   'vals': coeffs,
+                                   'theta': angles,
+                                   'sigstd': sigma,
+                                   'density': dens}).x
+
+    (sxx_0, _, _), _ = calc_stress(strain[0],
+                                   strain[1],
+                                   strain[2],
+                                   m,
+                                   lh,
+                                   l1,
+                                   l2,
+                                   l3,
+                                   l3,
+                                   l5,
+                                   coeffs,
+                                   angles,
+                                   sigma,
+                                   dens)
+
+    plan = ((0.8, 1.0, 1.0),
+            (1.2, 1.0, 1.0),
+            (1.0, 0.8, 1.0),
+            (1.0, 1.2, 1.0),
+            (1.0, 1.0, 0.8),
+            (1.0, 1.0, 1.2))
+
+    res = list()
+
+    for (f1, f2, f5) in plan:
+        lam1 = tuple(e * f1 for e in l1)
+        lam2 = tuple(e * f2 for e in l2)
+        lam5 = tuple(e * f5 for e in l5)
+
+        (sxx, _, _), _ = calc_stress(strain[0],
+                                     strain[1],
+                                     strain[2],
+                                     m,
+                                     lh,
+                                     lam1,
+                                     lam2,
+                                     lam2,
+                                     lam5,
+                                     lam5,
+                                     coeffs,
+                                     angles,
+                                     sigma,
+                                     dens)
+        res.append((sxx - sxx_0) / sxx_0)
+
+    ax = fig.add_subplot(1, 3, 2)
+
+    ax.vlines(0, -0.225, 1.225, color='k')
+    ax.spines[['right', 'top', 'left']].set_visible(False)
+    ax.yaxis.set_tick_params(length=0, labelsize=12)
+    ax.set_title(r'Relative variation in $\tau_{xx}$ ($0^\circ$)', fontsize=12)
+    ax.set_xticks((-0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15))
+    ax.set_xlim((-0.11, 0.11))
+
+    ax.barh((1.0, 1.0, 0.0, 0.0, 0.5, 0.5),
+            res, align='center', height=0.45,
+            color=('coral', 'deepskyblue') * 3,
+            tick_label=(r'$\lambda_1$', r'$\lambda_1$',
+                        r'$\lambda_2$', r'$\lambda_2$',
+                        r'$\lambda_5$', r'$\lambda_5$'))
+
+    angles = (np.pi / 2, 0.0, 0.0)
+
+    if (abs(stress[2]) < 0.001
+            and abs(stress[0] - stress[1]) < 0.001):
+        m = (0.0, 0.0, 0.0)
+    else:
+        m = tuple(cos(2 * (theta - 0.5 * atan2(2 * stress[2],
+                                               stress[0] -
+                                               stress[1])))
+                  for theta in angles)
+
+    strain = least_squares(least_square_wrapper,
+                           x0=(0.0, 0.0, 0.0),
+                           kwargs={'target_stress': stress,
+                                   'm_vals': m,
+                                   'lamh': lh,
+                                   'lam1': l1,
+                                   'lam2': l2,
+                                   'lam3': l3,
+                                   'lam4': l4,
+                                   'lam5': l5,
+                                   'vals': coeffs,
+                                   'theta': angles,
+                                   'sigstd': sigma,
+                                   'density': dens}).x
+
+    (sxx_0, _, _), _ = calc_stress(strain[0],
+                                   strain[1],
+                                   strain[2],
+                                   m,
+                                   lh,
+                                   l1,
+                                   l2,
+                                   l3,
+                                   l3,
+                                   l5,
+                                   coeffs,
+                                   angles,
+                                   sigma,
+                                   dens)
+
+    plan = ((0.8, 1.0, 1.0),
+            (1.2, 1.0, 1.0),
+            (1.0, 0.8, 1.0),
+            (1.0, 1.2, 1.0),
+            (1.0, 1.0, 0.8),
+            (1.0, 1.0, 1.2))
+
+    res = list()
+
+    for (f1, f2, f5) in plan:
+        lam1 = tuple(e * f1 for e in l1)
+        lam2 = tuple(e * f2 for e in l2)
+        lam5 = tuple(e * f5 for e in l5)
+
+        (sxx, _, _), _ = calc_stress(strain[0],
+                                     strain[1],
+                                     strain[2],
+                                     m,
+                                     lh,
+                                     lam1,
+                                     lam2,
+                                     lam2,
+                                     lam5,
+                                     lam5,
+                                     coeffs,
+                                     angles,
+                                     sigma,
+                                     dens)
+        res.append((sxx - sxx_0) / sxx_0)
+
+    ax = fig.add_subplot(1, 3, 3)
+
+    ax.vlines(0, -0.225, 1.225, color='k')
+    ax.spines[['right', 'top', 'left']].set_visible(False)
+    ax.yaxis.set_tick_params(length=0, labelsize=12)
+    ax.set_title(r'Relative variation in $\tau_{xx}$ ($90^\circ$)',
+                 fontsize=12)
+    ax.set_xticks((-0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15))
+
+    ax.barh((0.0, 0.0, 1.0, 1.0, 0.5, 0.5),
+            res, align='center', height=0.45,
+            color=('coral', 'deepskyblue') * 3,
+            tick_label=(r'$\lambda_1$', r'$\lambda_1$',
+                        r'$\lambda_2$', r'$\lambda_2$',
+                        r'$\lambda_5$', r'$\lambda_5$'))
+
+    ax.set_xlim((-max(*map(abs, ax.get_xlim())),
+                 max(*map(abs, ax.get_xlim()))))
+
+    plt.savefig('./relative_vars.svg', dpi=300)
 
     angles = (0.0, 0.0, 0.0)
     sigma = (1.0, 0.0, 0.0)
