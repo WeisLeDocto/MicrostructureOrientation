@@ -842,8 +842,8 @@ if __name__ == '__main__':
 
     plt.figure()
 
-    for lh in tqdm((10 ** (j - 2) for j in range(5)),
-                   total=5,
+    for lh in tqdm((10 ** j for j in range(4)),
+                   total=4,
                    desc='Iterate over the possible values',
                    file=sys.stdout,
                    colour='green',
