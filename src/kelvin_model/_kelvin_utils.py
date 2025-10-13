@@ -67,13 +67,13 @@ def prepare_data(ref_img: np.ndarray,
     sigma_1 = gauss_fit[..., 0]
     sigma_2 = np.nan_to_num(gauss_fit[..., 2])
     sigma_3 = np.nan_to_num(gauss_fit[..., 4])
-    theta_1 = peaks[..., 0]
-    theta_2 = np.nan_to_num(peaks[..., 1])
-    theta_3 = np.nan_to_num(peaks[..., 2])
+    theta_1 = np.deg2rad(peaks[..., 0])
+    theta_2 = np.deg2rad(np.nan_to_num(peaks[..., 1]))
+    theta_3 = np.deg2rad(np.nan_to_num(peaks[..., 2]))
 
-    m_1 = np.cos(2 * np.deg2rad(theta_1))
-    m_2 = np.cos(2 * np.deg2rad(theta_2))
-    m_3 = np.cos(2 * np.deg2rad(theta_3))
+    m_1 = np.cos(2 * theta_1)
+    m_2 = np.cos(2 * theta_2)
+    m_3 = np.cos(2 * theta_3)
 
     low_cutoff = ref_img.shape[1] // 10
     high_cutoff = (9 * ref_img.shape[1]) // 10
