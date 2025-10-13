@@ -782,6 +782,9 @@ if __name__ == '__main__':
 
     plt.savefig('./relative_vars.svg', dpi=300)
 
+    fig = plt.figure(figsize=(15, 11))
+    ax = fig.add_subplot(2, 2, 4)
+
     angles = (0.0, 0.0, 0.0)
     sigma = (1.0, 0.0, 0.0)
     dens = 1.0
@@ -802,11 +805,9 @@ if __name__ == '__main__':
     strain_path = np.zeros_like(stress_path)
     ezz_path = np.zeros_like(stress_path[:, 0])
 
-    plt.figure()
-
     for m in tqdm(np.linspace(-1, 1, 5).tolist(),
                   total=5,
-                  desc='Iterate over the possible values',
+                  desc='Iterate over the possible m values',
                   file=sys.stdout,
                   colour='green',
                   mininterval=0.001,
@@ -846,14 +847,15 @@ if __name__ == '__main__':
             ezz_path[i] = EzzBuf.ezz
             strain_path[i] = strain
 
-        plt.plot(strain_path[:, 0], stress_path[:, 0], label=f"{m:.1f}")
+        ax.plot(strain_path[:, 0], stress_path[:, 0], label=f"{m:.1f}")
 
-    plt.xlabel(r'$H_{xx}$', fontsize=16)
-    plt.ylabel(r'$\tau_{xx}$', fontsize=16)
-    plt.legend(title=r'$m=$')
-    plt.title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-              r'\lambda_5=2, \ \sigma=1, \ \mu=0$', fontsize=16)
-    plt.savefig('./figure_m.svg', dpi=300)
+    ax.set_xlabel(r'$H_{xx}$', fontsize=16)
+    ax.set_ylabel(r'$\tau_{xx}$', fontsize=16)
+    ax.legend(title=r'$m=$')
+    ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
+                 r'\lambda_5=2, \ \sigma=1, \ \mu=0$', fontsize=16)
+
+    ax = fig.add_subplot(2, 2, 3)
 
     angles = (0.0, 0.0, 0.0)
     sigma = (1.0, 0.0, 0.0)
@@ -875,11 +877,9 @@ if __name__ == '__main__':
     strain_path = np.zeros_like(stress_path)
     ezz_path = np.zeros_like(stress_path[:, 0])
 
-    plt.figure()
-
     for sig in tqdm((0.1, 0.5, 1.0, 5.0),
                     total=4,
-                    desc='Iterate over the possible values',
+                    desc='Iterate over the possible sigma values',
                     file=sys.stdout,
                     colour='green',
                     mininterval=0.001,
@@ -928,14 +928,16 @@ if __name__ == '__main__':
             ezz_path[i] = EzzBuf.ezz
             strain_path[i] = strain
 
-        plt.plot(strain_path[:, 0], stress_path[:, 0], label=sig)
+        ax.plot(strain_path[:, 0], stress_path[:, 0], label=sig)
 
-    plt.xlabel(r'$H_{xx}$', fontsize=16)
-    plt.ylabel(r'$\tau_{xx}$', fontsize=16)
-    plt.legend(title=r'$\sigma=$')
-    plt.title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-              r'\lambda_5=2, \ \mu=0$', fontsize=16)
-    plt.savefig('./figure_sigma.svg', dpi=300)
+    ax.set_xlabel(r'$H_{xx}$', fontsize=16)
+    ax.set_ylabel(r'$\tau_{xx}$', fontsize=16)
+    ax.legend(title=r'$\sigma=$')
+    ax.set_xticks((0.0, 0.05, 0.1, 0.15, 0.2))
+    ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
+                 r'\lambda_5=2, \ \mu=0$', fontsize=16)
+
+    ax = fig.add_subplot(2, 2, 2)
 
     angles = (0.0, 0.0, 0.0)
     sigma = (1.0, 0.0, 0.0)
@@ -957,11 +959,9 @@ if __name__ == '__main__':
     strain_path = np.zeros_like(stress_path)
     ezz_path = np.zeros_like(stress_path[:, 0])
 
-    plt.figure()
-
     for angle in tqdm((0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2),
                       total=5,
-                      desc='Iterate over the possible values',
+                      desc='Iterate over the possible angle values',
                       file=sys.stdout,
                       colour='green',
                       mininterval=0.001,
@@ -1010,98 +1010,16 @@ if __name__ == '__main__':
             ezz_path[i] = EzzBuf.ezz
             strain_path[i] = strain
 
-        plt.plot(strain_path[:, 0], stress_path[:, 0],
-                 label=f"{round(np.rad2deg(angle), 0)}°")
+        ax.plot(strain_path[:, 0], stress_path[:, 0],
+                label=f"{round(np.rad2deg(angle), 0)}°")
 
-    plt.xlabel(r'$H_{xx}$', fontsize=16)
-    plt.ylabel(r'$\tau_{xx}$', fontsize=16)
-    plt.legend(title=r'$\mu=$')
-    plt.title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-              r'\lambda_5=2, \ \sigma=1$', fontsize=16)
-    plt.savefig('./figure_mu.svg', dpi=300)
+    ax.set_xlabel(r'$H_{xx}$', fontsize=16)
+    ax.set_ylabel(r'$\tau_{xx}$', fontsize=16)
+    ax.legend(title=r'$\mu=$')
+    ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
+                 r'\lambda_5=2, \ \sigma=1$', fontsize=16)
 
-    angles = (0.0, 0.0, 0.0)
-    sigma = (1.0, 0.0, 0.0)
-    dens = 1.0
-
-    lh = 1000.0
-    l1 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l2 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l3 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l4 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l5 = (1.0, 1.0, 1.0, 1.0, 1.0)
-
-    coeffs = (1.0, 0.0, 0.0, 0.0, 0.0)
-
-    stress_path = np.stack((np.linspace(0.0, 0.0, 100),
-                            np.linspace(0.0, 0.0, 100),
-                            np.linspace(0.0, 1.0, 100)), axis=1)
-
-    strain_path = np.zeros_like(stress_path)
-    ezz_path = np.zeros_like(stress_path[:, 0])
-
-    plt.figure()
-
-    for lambda_5 in tqdm((10 ** (j - 1) for j in range(3)),
-                         total=3,
-                         desc='Iterate over the possible values',
-                         file=sys.stdout,
-                         colour='green',
-                         mininterval=0.001,
-                         maxinterval=0.01,
-                         position=0,
-                         leave=True):
-
-        l4 = (lambda_5, 1.0, 1.0, 1.0, 1.0)
-        l5 = (lambda_5, 1.0, 1.0, 1.0, 1.0)
-
-        for i, stress in tqdm(enumerate(stress_path.tolist()),
-                              total=stress_path.shape[0],
-                              desc='Compute optimal strain tensor',
-                              file=sys.stdout,
-                              colour='green',
-                              mininterval=0.001,
-                              maxinterval=0.01,
-                              position=1,
-                              leave=False):
-            stress = np.array(stress, dtype=np.float64)
-
-            if (abs(stress[2]) < 0.001
-                    and abs(stress[0] - stress[1]) < 0.001):
-                m = (0.0, 0.0, 0.0)
-            else:
-                m = tuple(cos(2 * (theta - 0.5 * atan2(2 * stress[2],
-                                                       stress[0] -
-                                                       stress[1])))
-                          for theta in angles)
-
-            strain = least_squares(least_square_wrapper,
-                                   x0=strain_path[i - 1] if i > 0
-                                   else np.array((0.0, 0.0, 0.0),
-                                                 dtype=np.float64),
-                                   kwargs={'target_stress': stress,
-                                           'm_vals': m,
-                                           'lamh': lh,
-                                           'lam1': l1,
-                                           'lam2': l2,
-                                           'lam3': l3,
-                                           'lam4': l4,
-                                           'lam5': l5,
-                                           'vals': coeffs,
-                                           'theta': angles,
-                                           'sigstd': sigma,
-                                           'density': dens}).x
-            ezz_path[i] = EzzBuf.ezz
-            strain_path[i] = strain
-
-        plt.plot(strain_path[:, 2], stress_path[:, 2], label=lambda_5)
-
-    plt.xlabel(r'$H_{xy}$', fontsize=16)
-    plt.ylabel(r'$\tau_{xy}$', fontsize=16)
-    plt.legend(title=r'$\lambda_5=$')
-    plt.title(r'$\lambda_h=1000, \ \lambda_1=1, \ \lambda_2=1, \ '
-              r'\sigma=1.0, \ \mu=0$', fontsize=16)
-    plt.savefig('./figure_lambda_5.svg', dpi=300)
+    ax = fig.add_subplot(2, 2, 1)
 
     angles = (0.0, 0.0, 0.0)
     sigma = (1.0, 0.0, 0.0)
@@ -1123,11 +1041,9 @@ if __name__ == '__main__':
     strain_path = np.zeros_like(stress_path)
     ezz_path = np.zeros_like(stress_path[:, 0])
 
-    plt.figure()
-
     for lh in tqdm((10 ** j for j in range(4)),
                    total=4,
-                   desc='Iterate over the possible values',
+                   desc='Iterate over the possible lambda_h values',
                    file=sys.stdout,
                    colour='green',
                    mininterval=0.001,
@@ -1174,178 +1090,16 @@ if __name__ == '__main__':
             ezz_path[i] = EzzBuf.ezz
             strain_path[i] = strain
 
-        plt.plot(stress_path[:, 0], np.exp(strain_path[:, 0]
-                                           + strain_path[:, 1]
-                                           + ezz_path), label=lh)
+        ax.plot(stress_path[:, 0], np.exp(strain_path[:, 0]
+                                          + strain_path[:, 1]
+                                          + ezz_path), label=lh)
 
-    plt.xlabel(r'$\tau_{xx}$', fontsize=16)
-    plt.ylabel('Volumetric change', fontsize=16)
-    plt.legend(title=r'$\lambda_h=$')
-    plt.title(r'$\lambda_1=1, \ \lambda_2=1, \ '
-              r'\lambda_5=1, \ \sigma=1, \ \mu=0$', fontsize=16)
-    plt.savefig('./figure_lambda_h.svg', dpi=300)
+    ax.set_xlabel(r'$\tau_{xx}$', fontsize=16)
+    ax.set_ylabel('Volumetric change', fontsize=16)
+    ax.legend(title=r'$\lambda_h=$')
+    ax.set_title(r'$\lambda_1=1, \ \lambda_2=1, \ '
+                 r'\lambda_5=1, \ \sigma=1, \ \mu=0$', fontsize=16)
 
-    angles = (0.0, 0.0, 0.0)
-    sigma = (1.0, 0.0, 0.0)
-    dens = 1.0
+    plt.savefig('./curves.svg', dpi=300)
 
-    lh = 1000.0
-    l1 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l2 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l3 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l4 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l5 = (1.0, 1.0, 1.0, 1.0, 1.0)
-
-    coeffs = (1.0, 0.0, 0.0, 0.0, 0.0)
-
-    stress_path = np.stack((np.linspace(0.0, 1.0, 100),
-                            np.linspace(0.0, 0.0, 100),
-                            np.linspace(0.0, 0.0, 100)), axis=1)
-
-    strain_path = np.zeros_like(stress_path)
-    ezz_path = np.zeros_like(stress_path[:, 0])
-
-    plt.figure()
-
-    for lambda_1 in tqdm((10 ** (j - 2) for j in range(4)),
-                         total=4,
-                         desc='Iterate over the possible values',
-                         file=sys.stdout,
-                         colour='green',
-                         mininterval=0.001,
-                         maxinterval=0.01,
-                         position=0,
-                         leave=True):
-
-        l1 = (lambda_1, 1.0, 1.0, 1.0, 1.0)
-
-        for i, stress in tqdm(enumerate(stress_path.tolist()),
-                              total=stress_path.shape[0],
-                              desc='Compute optimal strain tensor',
-                              file=sys.stdout,
-                              colour='green',
-                              mininterval=0.001,
-                              maxinterval=0.01,
-                              position=1,
-                              leave=False):
-            stress = np.array(stress, dtype=np.float64)
-
-            if (abs(stress[2]) < 0.001
-                    and abs(stress[0] - stress[1]) < 0.001):
-                m = (0.0, 0.0, 0.0)
-            else:
-                m = tuple(cos(2 * (theta - 0.5 * atan2(2 * stress[2],
-                                                       stress[0] -
-                                                       stress[1])))
-                          for theta in angles)
-
-            strain = least_squares(least_square_wrapper,
-                                   x0=strain_path[i - 1] if i > 0
-                                   else np.array((0.0, 0.0, 0.0),
-                                                 dtype=np.float64),
-                                   kwargs={'target_stress': stress,
-                                           'm_vals': m,
-                                           'lamh': lh,
-                                           'lam1': l1,
-                                           'lam2': l2,
-                                           'lam3': l3,
-                                           'lam4': l4,
-                                           'lam5': l5,
-                                           'vals': coeffs,
-                                           'theta': angles,
-                                           'sigstd': sigma,
-                                           'density': dens}).x
-            ezz_path[i] = EzzBuf.ezz
-            strain_path[i] = strain
-
-        plt.plot(strain_path[:, 0], stress_path[:, 0], label=lambda_1)
-
-    plt.xlabel(r'$H_{xx}$', fontsize=16)
-    plt.ylabel(r'$\tau_{xx}$', fontsize=16)
-    plt.legend(title=r'$\lambda_1=$')
-    plt.title(r'$\lambda_h=1000, \ \lambda_2=1, \ '
-              r'\lambda_5=1, \ \sigma=1, \ \mu=0$', fontsize=16)
-    plt.savefig('./figure_lambda_1.svg', dpi=300)
-
-    angles = (np.pi / 2, 0.0, 0.0)
-    sigma = (1.0, 0.0, 0.0)
-    dens = 1.0
-
-    lh = 1000.0
-    l1 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l2 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l3 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l4 = (1.0, 1.0, 1.0, 1.0, 1.0)
-    l5 = (1.0, 1.0, 1.0, 1.0, 1.0)
-
-    coeffs = (1.0, 0.0, 0.0, 0.0, 0.0)
-
-    stress_path = np.stack((np.linspace(0.0, 1.0, 100),
-                            np.linspace(0.0, 0.0, 100),
-                            np.linspace(0.0, 0.0, 100)), axis=1)
-
-    strain_path = np.zeros_like(stress_path)
-    ezz_path = np.zeros_like(stress_path[:, 0])
-
-    plt.figure()
-
-    for lambda_2 in tqdm((10 ** (j - 1) for j in range(3)),
-                         total=3,
-                         desc='Iterate over the possible values',
-                         file=sys.stdout,
-                         colour='green',
-                         mininterval=0.001,
-                         maxinterval=0.01,
-                         position=0,
-                         leave=True):
-
-        l2 = (lambda_2, 1.0, 1.0, 1.0, 1.0)
-        l3 = (lambda_2, 1.0, 1.0, 1.0, 1.0)
-
-        for i, stress in tqdm(enumerate(stress_path.tolist()),
-                              total=stress_path.shape[0],
-                              desc='Compute optimal strain tensor',
-                              file=sys.stdout,
-                              colour='green',
-                              mininterval=0.001,
-                              maxinterval=0.01,
-                              position=1,
-                              leave=False):
-            stress = np.array(stress, dtype=np.float64)
-
-            if (abs(stress[2]) < 0.001
-                    and abs(stress[0] - stress[1]) < 0.001):
-                m = (0.0, 0.0, 0.0)
-            else:
-                m = tuple(cos(2 * (theta - 0.5 * atan2(2 * stress[2],
-                                                       stress[0] -
-                                                       stress[1])))
-                          for theta in angles)
-
-            strain = least_squares(least_square_wrapper,
-                                   x0=strain_path[i - 1] if i > 0
-                                   else np.array((0.0, 0.0, 0.0),
-                                                 dtype=np.float64),
-                                   kwargs={'target_stress': stress,
-                                           'm_vals': m,
-                                           'lamh': lh,
-                                           'lam1': l1,
-                                           'lam2': l2,
-                                           'lam3': l3,
-                                           'lam4': l4,
-                                           'lam5': l5,
-                                           'vals': coeffs,
-                                           'theta': angles,
-                                           'sigstd': sigma,
-                                           'density': dens}).x
-            ezz_path[i] = EzzBuf.ezz
-            strain_path[i] = strain
-
-        plt.plot(strain_path[:, 0], stress_path[:, 0], label=lambda_2)
-
-    plt.xlabel(r'$H_{xx}$', fontsize=16)
-    plt.ylabel(r'$\tau_{xx}$', fontsize=16)
-    plt.legend(title=r'$\lambda_2=$')
-    plt.title(r'$\lambda_h=1000, \ \lambda_1=1, \ '
-              r'\lambda_5=1, \ \sigma=1, \ \mu=0$', fontsize=16)
-    plt.savefig('./figure_lambda_2.svg', dpi=300)
+    plt.show()
