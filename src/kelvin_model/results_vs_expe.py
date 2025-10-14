@@ -21,7 +21,7 @@ def compare_results_expe(lib_path: Path,
                          def_images: Sequence[np.ndarray],
                          timestamps: Sequence[float],
                          efforts_x: Sequence[float],
-                         efforts_y: Sequence[float],
+                         positions: Sequence[float],
                          scale: float,
                          thickness: float,
                          nb_interp_diag: int,
@@ -48,8 +48,8 @@ def compare_results_expe(lib_path: Path,
             were acquired, one for each image.
         efforts_x: Sequence of floats representing the measured force in the x
             direction, one for each image.
-        efforts_y: Sequence of floats representing the measured force in the y
-            direction, one for each image.
+        positions: Sequence of floats representing the measured position in the
+            x direction, one for each image.
         scale: The mm/pixel ratio of the image, as a float.
         thickness: The thickness of the sample in mm, as a float.
         nb_interp_diag: Number of interpolation points along the diagonals.
@@ -166,8 +166,8 @@ def compare_results_expe(lib_path: Path,
                                                for eyy in eyys),
                             'xy_strain': tuple(np.median(exy)
                                                for exy in exys),
+                            'measured_pos': positions,
                             'measured_x': efforts_x,
                             'calculated_x': forces_x,
-                            'measured_y': efforts_y,
                             'calculated_y': forces_y})
     results.to_csv(dest_file, index=False)
