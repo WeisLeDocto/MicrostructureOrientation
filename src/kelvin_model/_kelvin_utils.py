@@ -67,9 +67,9 @@ def prepare_data(ref_img: np.ndarray,
     sigma_1 = gauss_fit[..., 0]
     sigma_2 = np.nan_to_num(gauss_fit[..., 2])
     sigma_3 = np.nan_to_num(gauss_fit[..., 4])
-    theta_1 = peaks[..., 0]
-    theta_2 = np.nan_to_num(peaks[..., 1])
-    theta_3 = np.nan_to_num(peaks[..., 2])
+    theta_1 = peaks[..., 1]
+    theta_2 = np.nan_to_num(peaks[..., 3])
+    theta_3 = np.nan_to_num(peaks[..., 5])
 
     m_1 = np.cos(2 * theta_1)
     m_2 = np.cos(2 * theta_2)
