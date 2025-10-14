@@ -103,8 +103,8 @@ def process_img(img: np.ndarray,
 
     sign_3 = cp.tile(cp.linspace(0, cp.pi, NB_ANGLES),
                      (img.shape[0], img.shape[1], 3, 1))
-    sign_3 = amp * cp.exp(-cp.power(cp.atan2(cp.sin(2 * (sign_3 - ang)),
-                                             cp.cos(2 * (sign_3 - ang)))
+    sign_3 = amp * cp.exp(-cp.power(cp.arctan2(cp.sin(2 * (sign_3 - ang)),
+                                               cp.cos(2 * (sign_3 - ang)))
                                     / (4 * sig), 2))
     signal = cp.sum(sign_3, axis=2)
     del ang
