@@ -17,7 +17,7 @@ if __name__ == '__main__':
         "font.family": "serif",
     })
 
-    img = '7LX1_2'
+    img = '7LX1'
 
     ref_img_pth = {'7LX1': Path(f"./data/{img}/hdr/14_5391.npy"),
                    '7LX1_2': Path(f"./data/{img}/hdr/4_2414.npy"),
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         '7LX1_2': (Path(f"./data/{img}/hdr/5_2592.npy"),
                    Path(f"./data/{img}/hdr/14_4196.npy")),
         '7LX1_3': (Path(f"./data/{img}/hdr/8_04540.npy"),
-                   Path(f"./data/{img}/hdr/18_06311.npy"))}
+                   Path(f"./data/{img}/hdr/16_05955.npy"))}
 
     def_images = tuple(np.load(image) for image in def_images_paths[img])
 
@@ -105,32 +105,32 @@ if __name__ == '__main__':
                      ax=axs[1][1])
     c.set_label(r'$\mu_1$', fontsize=12)
 
-    lo = -max(abs(np.min(exxs[0])), abs(np.max(exxs[0])))
-    hi = max(abs(np.min(exxs[0])), abs(np.max(exxs[0])))
+    lo = -max(abs(np.percentile(exxs[0], 1)), abs(np.percentile(exxs[0], 99)))
+    hi = max(abs(np.percentile(exxs[0], 1)), abs(np.percentile(exxs[0], 99)))
     axs[2][0].imshow(exxs[0], cmap='coolwarm', clim=(lo, hi))
     axs[2][0].set_title('(e)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=axs[2][0])
     c.set_label(r'Low $H_{xx}$', fontsize=12)
 
-    lo = -max(abs(np.min(exxs[1])), abs(np.max(exxs[1])))
-    hi = max(abs(np.min(exxs[1])), abs(np.max(exxs[1])))
+    lo = -max(abs(np.percentile(exxs[1], 1)), abs(np.percentile(exxs[1], 99)))
+    hi = max(abs(np.percentile(exxs[1], 1)), abs(np.percentile(exxs[1], 99)))
     axs[2][1].imshow(exxs[1], cmap='coolwarm', clim=(lo, hi))
     axs[2][1].set_title('(f)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=axs[2][1])
     c.set_label(r'Low $H_{yy}$', fontsize=12)
 
-    lo = -max(abs(np.min(eyys[0])), abs(np.max(eyys[0])))
-    hi = max(abs(np.min(eyys[0])), abs(np.max(eyys[0])))
+    lo = -max(abs(np.percentile(eyys[0], 1)), abs(np.percentile(eyys[0], 99)))
+    hi = max(abs(np.percentile(eyys[0], 1)), abs(np.percentile(eyys[0], 99)))
     axs[3][0].imshow(eyys[0], cmap='coolwarm', clim=(lo, hi))
     axs[3][0].set_title('(g)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=axs[3][0])
     c.set_label(r'High $H_{xx}$', fontsize=12)
 
-    lo = -max(abs(np.min(eyys[1])), abs(np.max(eyys[1])))
-    hi = max(abs(np.min(eyys[1])), abs(np.max(eyys[1])))
+    lo = -max(abs(np.percentile(eyys[1], 1)), abs(np.percentile(eyys[1], 99)))
+    hi = max(abs(np.percentile(eyys[1], 1)), abs(np.percentile(eyys[1], 99)))
     axs[3][1].imshow(eyys[1], cmap='coolwarm', clim=(lo, hi))
     axs[3][1].set_title('(h)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
