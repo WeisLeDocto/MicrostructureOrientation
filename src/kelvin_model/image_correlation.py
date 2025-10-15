@@ -26,9 +26,9 @@ def image_correlation(ref_img: np.ndarray,
 
     # Configure DISFlow for our specific application
     dis = cv2.DISOpticalFlow_create(cv2.DISOPTICAL_FLOW_PRESET_MEDIUM)
-    dis.setVariationalRefinementAlpha(15.0)
+    dis.setVariationalRefinementAlpha(150.0)
     dis.setVariationalRefinementDelta(1.0)
-    dis.setVariationalRefinementEpsilon(0.01)
+    dis.setVariationalRefinementEpsilon(0.1)
     dis.setVariationalRefinementGamma(0.0)
     dis.setFinestScale(0)
     dis.setVariationalRefinementIterations(100)
