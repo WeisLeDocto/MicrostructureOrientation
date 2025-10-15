@@ -135,6 +135,17 @@ if __name__ == '__main__':
                                                     scale,
                                                     thickness)
 
+    fig_0 = plt.figure(figsize=(17, 5))
+    ax = fig_0.add_subplot(1, 3, 1)
+    ax.plot(force_x_ref, color='royalblue', label=r'Effort along $x$')
+    ax.hlines(np.median(force_x_ref), 0, len(force_x_ref), color='royalblue',
+              linestyles='--', label=r'Median along $x$')
+    ax.plot(force_y_ref, color='sandybrown', label=r'Effort along $y$')
+    ax.hlines(np.median(force_y_ref), 0, len(force_x_ref), color='sandybrown',
+              linestyles='--', label=r'Median along $y$')
+    ax.set_title(img)
+    ax.legend()
+
     results = dict()
 
     sig_1_avg = np.full_like(sigma_1, np.average(sigma_1))
@@ -623,6 +634,15 @@ if __name__ == '__main__':
                                                     normals,
                                                     scale,
                                                     thickness)
+
+    ax = fig_0.add_subplot(1, 3, 2)
+    ax.plot(force_x_ref, color='royalblue')
+    ax.hlines(np.median(force_x_ref), 0, len(force_x_ref), color='royalblue',
+              linestyles='--')
+    ax.plot(force_y_ref, color='sandybrown')
+    ax.hlines(np.median(force_y_ref), 0, len(force_x_ref), color='sandybrown',
+              linestyles='--')
+    ax.set_title(img)
 
     results = dict()
 
