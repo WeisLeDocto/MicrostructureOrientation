@@ -83,7 +83,7 @@ def prepare_data(ref_img: np.ndarray,
                           dtype=np.float64)
     for j in range(interp_pts.shape[0]):
         interp_pts[j, :, 1] = np.linspace(low_cutoff + j,
-                                          high_cutoff - 1 - j,
+                                          low_cutoff + j,
                                           nb_interp_diag)
         interp_pts[j, :, 0] = np.linspace(0, ref_img.shape[0] - 1,
                                           nb_interp_diag)
@@ -93,9 +93,7 @@ def prepare_data(ref_img: np.ndarray,
     normals = np.zeros((high_cutoff - low_cutoff, nb_interp_diag, 2),
                        dtype=np.float64)
     for i in range(normals.shape[0]):
-        normals[i] = np.array((1.0, (high_cutoff - 2 * i - 1) /
-                               ref_img.shape[0]),
-                              dtype=np.float64)
+        normals[i] = np.array((1.0, 0.0), dtype=np.float64)
         normals[i] /= np.linalg.norm(normals[i], axis=1)[:, np.newaxis]
     normals = normals[::diagonal_downscaling]
 
