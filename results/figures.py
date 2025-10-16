@@ -50,7 +50,7 @@ if __name__ == '__main__':
         '7LX1': (Path(f"./data/{img}/hdr/15_5570.npy"),
                  Path(f"./data/{img}/hdr/21_6630.npy")),
         '7LX1_2': (Path(f"./data/{img}/hdr/5_2592.npy"),
-                   Path(f"./data/{img}/hdr/14_4196.npy")),
+                   Path(f"./data/{img}/hdr/13_4018.npy")),
         '7LX1_3': (Path(f"./data/{img}/hdr/8_04540.npy"),
                    Path(f"./data/{img}/hdr/16_05955.npy"))}
 

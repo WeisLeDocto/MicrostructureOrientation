@@ -47,7 +47,7 @@ if __name__ == '__main__':
     # Images to use for the optimization
     def_images_paths = {
         '7LX1': (Path(f"./data/{img}/hdr/21_6630.npy"),),
-        '7LX1_2': (Path(f"./data/{img}/hdr/14_4196.npy"),),
+        '7LX1_2': (Path(f"./data/{img}/hdr/13_4018.npy"),),
         '7LX1_3': (Path(f"./data/{img}/hdr/16_05955.npy"),)}
 
     def_images = tuple(np.load(image) for image in def_images_paths[img])
@@ -547,8 +547,8 @@ if __name__ == '__main__':
     # Images to use for the optimization
     def_images_paths = {
         '7LX1': (Path(f"./data/{img}/hdr/21_6630.npy"),),
-        '7LX1_2': (Path(f"./data/{img}/hdr/14_4196.npy"),),
-        '7LX1_3': (Path(f"./data/{img}/hdr/18_06311.npy"),)}
+        '7LX1_2': (Path(f"./data/{img}/hdr/13_4018.npy"),),
+        '7LX1_3': (Path(f"./data/{img}/hdr/16_05955.npy"),)}
 
     def_images = tuple(np.load(image) for image in def_images_paths[img])
 
