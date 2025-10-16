@@ -143,7 +143,7 @@ if __name__ == '__main__':
     ax.plot(force_y_ref, color='sandybrown', label=r'Effort along $y$')
     ax.hlines(np.median(force_y_ref), 0, len(force_x_ref), color='sandybrown',
               linestyles='--', label=r'Median ($y$)')
-    ax.set_title(img)
+    ax.set_title('Sample 1')
     ax.legend()
     ax.spines[['right', 'top']].set_visible(False)
     ax.set_ylabel(r'$F_x$ (N)', fontsize=12)
@@ -513,7 +513,7 @@ if __name__ == '__main__':
     ax.vlines(0, -0.225, 2.225, color='k')
     ax.spines[['right', 'top', 'left']].set_visible(False)
     ax.yaxis.set_tick_params(length=0, labelsize=12)
-    ax.set_title(img, fontsize=12)
+    ax.set_title('Sample 1', fontsize=12)
     ax.set_xticks((0.0, 0.005, 0.01, 0.015, 0.02))
     ax.set_xlabel('Relative variation in $F_x$', fontsize=12)
 
@@ -652,7 +652,7 @@ if __name__ == '__main__':
     ax.plot(force_y_ref, color='sandybrown')
     ax.hlines(np.median(force_y_ref), 0, len(force_x_ref), color='sandybrown',
               linestyles='--')
-    ax.set_title(img)
+    ax.set_title('Sample 2')
     ax.spines[['right', 'top']].set_visible(False)
     ax.set_xlabel('Diagonal index', fontsize=12)
     ax.text(-0.05, 1.05, "(b)", size=12, verticalalignment='center',
@@ -1019,7 +1019,7 @@ if __name__ == '__main__':
     ax.vlines(0, -0.225, 2.225, color='k')
     ax.spines[['right', 'top', 'left']].set_visible(False)
     ax.yaxis.set_tick_params(length=0, labelsize=12)
-    ax.set_title(img, fontsize=12)
+    ax.set_title('Sample 2', fontsize=12)
     ax.set_xlabel('Relative variation in $F_x$', fontsize=12)
 
     ax.barh((0.0, 0.5, 1.0, 1.5, 2.0),
@@ -1157,7 +1157,7 @@ if __name__ == '__main__':
     ax.plot(force_y_ref, color='sandybrown')
     ax.hlines(np.median(force_y_ref), 0, len(force_x_ref), color='sandybrown',
               linestyles='--')
-    ax.set_title(img)
+    ax.set_title('Sample 3')
     ax.spines[['right', 'top']].set_visible(False)
     ax.set_xlabel('Diagonal index', fontsize=12)
     ax.text(-0.05, 1.05, "(c)", size=12, verticalalignment='center',
@@ -1524,7 +1524,7 @@ if __name__ == '__main__':
     ax.vlines(0, -0.225, 2.225, color='k')
     ax.spines[['right', 'top', 'left']].set_visible(False)
     ax.yaxis.set_tick_params(length=0, labelsize=12)
-    ax.set_title(img, fontsize=12)
+    ax.set_title('Sample 3', fontsize=12)
     ax.set_xlabel('Relative variation in $F_x$', fontsize=12)
 
     ax.barh((0.0, 0.5, 1.0, 1.5, 2.0),
