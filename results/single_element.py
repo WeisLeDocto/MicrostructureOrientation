@@ -8,7 +8,6 @@ from scipy.optimize import least_squares
 from matplotlib import pyplot as plt
 from tqdm.auto import tqdm
 import sys
-from itertools import batched
 
 
 class EzzBuf:
@@ -593,12 +592,15 @@ if __name__ == '__main__':
     ax.set_title(r'Relative variation in $\tau_{xy}$', fontsize=12)
     ax.set_xticks((-0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15))
 
-    ax.barh((0.5, 0.5, 0.0, 0.0, 1.0, 1.0),
+    ax.barh((0.0, 0.0, 0.5, 0.5, 1.0, 1.0),
             res, align='center', height=0.45,
             color=('coral', 'deepskyblue') * 3,
             tick_label=(r'$\lambda_1$', r'$\lambda_1$',
                         r'$\lambda_2$', r'$\lambda_2$',
                         r'$\lambda_5$', r'$\lambda_5$'))
+
+    ax.text(0.0, 1.06, "(a)", size=12, verticalalignment='center',
+            transform=ax.transAxes)
 
     ax.set_xlim((-max(*map(abs, ax.get_xlim())),
                  max(*map(abs, ax.get_xlim()))))
@@ -683,12 +685,13 @@ if __name__ == '__main__':
     ax.set_xticks((-0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15))
     ax.set_xlim((-0.11, 0.11))
 
-    ax.barh((1.0, 1.0, 0.0, 0.0, 0.5, 0.5),
+    ax.barh((0.0, 0.0, 0.5, 0.5, 1.0, 1.0),
             res, align='center', height=0.45,
             color=('coral', 'deepskyblue') * 3,
-            tick_label=(r'$\lambda_1$', r'$\lambda_1$',
-                        r'$\lambda_2$', r'$\lambda_2$',
-                        r'$\lambda_5$', r'$\lambda_5$'))
+            tick_label=('',) * 6)
+
+    ax.text(0.0, 1.06, "(b)", size=12, verticalalignment='center',
+            transform=ax.transAxes)
 
     angles = (np.pi / 2, 0.0, 0.0)
 
@@ -770,12 +773,13 @@ if __name__ == '__main__':
                  fontsize=12)
     ax.set_xticks((-0.15, -0.1, -0.05, 0.0, 0.05, 0.1, 0.15))
 
-    ax.barh((0.0, 0.0, 1.0, 1.0, 0.5, 0.5),
+    ax.barh((0.0, 0.0, 0.5, 0.5, 1.0, 1.0),
             res, align='center', height=0.45,
             color=('coral', 'deepskyblue') * 3,
-            tick_label=(r'$\lambda_1$', r'$\lambda_1$',
-                        r'$\lambda_2$', r'$\lambda_2$',
-                        r'$\lambda_5$', r'$\lambda_5$'))
+            tick_label=('',) * 6)
+
+    ax.text(0.0, 1.06, "(c)", size=12, verticalalignment='center',
+            transform=ax.transAxes)
 
     ax.set_xlim((-max(*map(abs, ax.get_xlim())),
                  max(*map(abs, ax.get_xlim()))))
@@ -853,7 +857,10 @@ if __name__ == '__main__':
     ax.set_ylabel(r'$\tau_{xx}$', fontsize=16)
     ax.legend(title=r'$m=$')
     ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-                 r'\lambda_5=2, \ \sigma=1, \ \mu=0$', fontsize=16)
+                 r'\lambda_5=2, \ \sigma=1, \ \mu=0$', fontsize=14)
+
+    ax.text(-0.05, 1.06, "(d)", size=16, verticalalignment='center',
+            transform=ax.transAxes)
 
     ax = fig.add_subplot(2, 2, 3)
 
@@ -935,7 +942,10 @@ if __name__ == '__main__':
     ax.legend(title=r'$\sigma=$')
     ax.set_xticks((0.0, 0.05, 0.1, 0.15, 0.2))
     ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-                 r'\lambda_5=2, \ \mu=0$', fontsize=16)
+                 r'\lambda_5=2, \ \mu=0$', fontsize=14)
+
+    ax.text(-0.05, 1.06, "(c)", size=16, verticalalignment='center',
+            transform=ax.transAxes)
 
     ax = fig.add_subplot(2, 2, 2)
 
@@ -1017,7 +1027,10 @@ if __name__ == '__main__':
     ax.set_ylabel(r'$\tau_{xx}$', fontsize=16)
     ax.legend(title=r'$\mu=$')
     ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-                 r'\lambda_5=2, \ \sigma=1$', fontsize=16)
+                 r'\lambda_5=2, \ \sigma=1$', fontsize=14)
+
+    ax.text(-0.05, 1.06, "(b)", size=16, verticalalignment='center',
+            transform=ax.transAxes)
 
     ax = fig.add_subplot(2, 2, 1)
 
@@ -1098,8 +1111,9 @@ if __name__ == '__main__':
     ax.set_ylabel('Volumetric change', fontsize=16)
     ax.legend(title=r'$\lambda_h=$')
     ax.set_title(r'$\lambda_1=1, \ \lambda_2=1, \ '
-                 r'\lambda_5=1, \ \sigma=1, \ \mu=0$', fontsize=16)
+                 r'\lambda_5=1, \ \sigma=1, \ \mu=0$', fontsize=14)
+
+    ax.text(-0.05, 1.06, "(a)", size=16, verticalalignment='center',
+            transform=ax.transAxes)
 
     plt.savefig('./curves.svg', dpi=300)
-
-    plt.show()
