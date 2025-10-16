@@ -232,18 +232,21 @@ if __name__ == '__main__':
     hi = max(abs(np.percentile(sxx_lo, 1)), abs(np.percentile(sxx_lo, 99)))
     ax1.imshow(sxx_lo, cmap='coolwarm', clim=(lo, hi))
     ax1.set_title('(a)', loc='left')
-    c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
-                     ax=ax1)
-    c.set_label(r'$\tau_{xx}$ low strain', fontsize=12)
+    ax1.text(0.4, 1.07, "Low strain", size=12, verticalalignment='center',
+             transform=ax1.transAxes)
+    plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
+                 ax=ax1)
     ax1.set_xticklabels([])
 
     lo = -max(abs(np.percentile(sxx_hi, 1)), abs(np.percentile(sxx_hi, 99)))
     hi = max(abs(np.percentile(sxx_hi, 1)), abs(np.percentile(sxx_hi, 99)))
     ax2.imshow(sxx_hi, cmap='coolwarm', clim=(lo, hi))
     ax2.set_title('(b)', loc='left')
+    ax2.text(0.4, 1.07, "High strain", size=12, verticalalignment='center',
+             transform=ax2.transAxes)
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=ax2)
-    c.set_label(r'$\tau_{xx}$ high strain', fontsize=12)
+    c.set_label(r'$\tau_{xx}$', fontsize=12)
     ax2.set_xticklabels([])
     ax2.set_yticklabels([])
 
@@ -251,9 +254,8 @@ if __name__ == '__main__':
     hi = max(abs(np.percentile(syy_lo, 1)), abs(np.percentile(syy_lo, 99)))
     ax3.imshow(syy_lo, cmap='coolwarm', clim=(lo, hi))
     ax3.set_title('(c)', loc='left')
-    c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
-                     ax=ax3)
-    c.set_label(r'$\tau_{yy}$ low strain', fontsize=12)
+    plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
+                 ax=ax3)
 
     lo = -max(abs(np.percentile(syy_hi, 1)), abs(np.percentile(syy_hi, 99)))
     hi = max(abs(np.percentile(syy_hi, 1)), abs(np.percentile(syy_hi, 99)))
@@ -261,7 +263,7 @@ if __name__ == '__main__':
     ax4.set_title('(d)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=ax4)
-    c.set_label(r'$\tau_{yy}$ high strain', fontsize=12)
+    c.set_label(r'$\tau_{yy}$', fontsize=12)
     ax4.set_yticklabels([])
 
     ax5.plot(results_file['measured_pos'].values / ref_img.shape[1] * 100,
