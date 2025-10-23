@@ -147,20 +147,26 @@ def error_diags_one_image(lib_path: Path,
                                                             density)
     
     # Calculate the stress values
-    sxx, syy, sxy = compute_stress(lib_path, exx_diags, eyy_diags, exy_diags,
-                                   m_1_diags, m_2_diags, m_3_diags, lambda_h,
-                                   lambda_11, lambda_21, lambda_51, lambda_12,
-                                   lambda_22, lambda_52, lambda_13, lambda_23,
-                                   lambda_53, lambda_14, lambda_24, lambda_54,
-                                   lambda_15, lambda_25, lambda_55, val1, val2,
-                                   val3, val4, val5, theta_1_diags,
-                                   theta_2_diags, theta_3_diags, sigma_1_diags,
-                                   sigma_2_diags, sigma_3_diags, density_diags)
+    sxx, syy, sxy, hzz = compute_stress(lib_path, exx_diags, eyy_diags,
+                                        exy_diags, m_1_diags, m_2_diags,
+                                        m_3_diags, lambda_h, lambda_11,
+                                        lambda_21, lambda_51, lambda_12,
+                                        lambda_22, lambda_52, lambda_13,
+                                        lambda_23, lambda_53, lambda_14,
+                                        lambda_24, lambda_54, lambda_15,
+                                        lambda_25, lambda_55, val1, val2, val3,
+                                        val4, val5, theta_1_diags,
+                                        theta_2_diags, theta_3_diags,
+                                        sigma_1_diags, sigma_2_diags,
+                                        sigma_3_diags, density_diags)
         
     # Derive the force from the stress fields
     comp_force_x, _ = stress_diag_to_force(sxx,
                                            syy,
                                            sxy,
+                                           exx_diags,
+                                           eyy_diags,
+                                           hzz,
                                            interp_pts,
                                            normals,
                                            scale,

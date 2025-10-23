@@ -410,7 +410,8 @@ void calc_stress(double exx,
                  double density,
                  double* sxx,
                  double* syy,
-                 double* sxy) {
+                 double* sxy,
+                 double* hzz) {
 
   /// Organize the values in arrays for convenience
   const double sigstd[3] = {sigma_1, sigma_2, sigma_3};
@@ -497,6 +498,7 @@ void calc_stress(double exx,
   *sxx = sig_3d(0, 0);
   *syy = sig_3d(1, 0);
   *sxy = sig_3d(3, 0);
+  *hzz = strain_3d(2, 0);
 }
 
 
@@ -504,7 +506,8 @@ void calc_stresses(const PixelData* input,
                    const LambdaParams* params,
                    const int rows,
                    const int cols,
-                   double* stress) {
+                   double* stress,
+                   double* hzz) {
 
   #pragma omp parallel for collapse(2) schedule(static)
   for (int i = 0; i < rows; ++i) {
@@ -559,7 +562,8 @@ void calc_stresses(const PixelData* input,
                   input[idx].density,
                   &stress[stress_idx],
                   &stress[stress_idx + 1],
-                  &stress[stress_idx + 2]);
+                  &stress[stress_idx + 2],
+                  &hzz[idx]);
     }
   }
 }

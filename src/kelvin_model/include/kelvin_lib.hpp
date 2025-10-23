@@ -38,7 +38,8 @@ EXPORT_SYMBOL void calc_stresses(const PixelData* input,
                                  const LambdaParams* params,
                                  const int rows,
                                  const int cols,
-                                 double* stress);
+                                 double* stress,
+                                 double* hzz);
 
 #ifdef __cplusplus
 }

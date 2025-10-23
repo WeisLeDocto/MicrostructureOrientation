@@ -263,6 +263,9 @@ def calc_density(density_base: np.ndarray,
 def stress_diag_to_force(sxx: np.ndarray,
                          syy: np.ndarray,
                          sxy: np.ndarray,
+                         exx: np.ndarray,
+                         eyy: np.ndarray,
+                         ezz: np.ndarray,
                          interp_pts: np.ndarray,
                          normals: np.ndarray,
                          scale: float,
@@ -275,6 +278,9 @@ def stress_diag_to_force(sxx: np.ndarray,
         sxx: The computed xx stress field, as an array.
         syy: The computed yy stress field, as an array.
         sxy: The computed xy stress field, as an array.
+        exx: The computed xx strain field, as an array.
+        eyy: The computed yy strain field, as an array.
+        ezz: The computed zz strain field, as an array.
         interp_pts: A numpy array containing all the points over which to
             compute the stress for calculating the final error.
         normals: A numpy array containing for each interpolation point the
@@ -290,7 +296,12 @@ def stress_diag_to_force(sxx: np.ndarray,
     # Project the stress tensor on the normals to the integration path
     stress = np.stack((np.stack((sxx, sxy), axis=2),
                        np.stack((sxy, syy), axis=2)), axis=3)
+    # Convert to Cauchy stress using volume change
+    stress /= np.exp(exx + eyy + ezz)[..., np.newaxis, np.newaxis]
     proj = (stress @ normals).squeeze()
+
+    # Factor accounting for thinning of the sample over time
+    proj *= np.exp(ezz)[..., np.newaxis]
 
     # Build the distance array to serve as an x-axis for integration
     dist_to_prev = np.sqrt(np.sum(np.power(

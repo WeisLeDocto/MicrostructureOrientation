@@ -40,7 +40,7 @@ def compute_stress(lib_path: Path,
                    sigma_2: np.ndarray,
                    sigma_3: np.ndarray,
                    density: np.ndarray
-                   ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+                   ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Computes the stress on all the specified pixels using a dedicated C++ 
     library.
 
@@ -94,7 +94,7 @@ def compute_stress(lib_path: Path,
 
     Returns:
         Three numpy arrays containing respectively the xx, yy, and xy stress
-        for all pixels.
+        for all pixels, plus another numpy array containing the hzz value.
     """
 
     # Load the shared C++ library
@@ -102,6 +102,9 @@ def compute_stress(lib_path: Path,
     
     # Array for storing the result stress
     stress = np.zeros((*exx.shape, 3), dtype=np.float64, order='C')
+
+    # Array for storing the zz strain
+    hzz = np.zeros(exx.shape, dtype=np.float64, order='C')
 
     # Store the measured data in a dedicated array
     input_dtype = np.dtype([('exx', np.float64), ('eyy', np.float64),
@@ -170,6 +173,7 @@ def compute_stress(lib_path: Path,
     
     # The arrays must be contiguous before being passed to C++ code
     stress = np.ascontiguousarray(stress)
+    hzz = np.ascontiguousarray(hzz)
     input_data = np.ascontiguousarray(input_data)
     lambda_params = np.ascontiguousarray(lambda_params)
     
@@ -179,6 +183,7 @@ def compute_stress(lib_path: Path,
         lambda_params.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
         ctypes.c_int(exx.shape[0]),
         ctypes.c_int(exx.shape[1]),
-        stress.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
+        stress.ctypes.data_as(ctypes.POINTER(ctypes.c_double)),
+        hzz.ctypes.data_as(ctypes.POINTER(ctypes.c_double)))
 
-    return stress[..., 0], stress[..., 1], stress[..., 2]
+    return stress[..., 0], stress[..., 1], stress[..., 2], hzz
