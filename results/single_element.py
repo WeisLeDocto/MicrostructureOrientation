@@ -790,7 +790,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(2, 2, 4)
 
     angles = (0.0, 0.0, 0.0)
-    sigma = (1.0, 0.0, 0.0)
+    sigma = (0.5, 0.0, 0.0)
     dens = 1.0
 
     lh = 1000.0
@@ -857,7 +857,7 @@ if __name__ == '__main__':
     ax.set_ylabel(r'$\tau_{xx}$', fontsize=16)
     ax.legend(title=r'$m=$')
     ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-                 r'\lambda_5=2, \ \sigma=1, \ \mu=0$', fontsize=14)
+                 r'\lambda_5=2, \ \sigma=0.5, \ \mu=0$', fontsize=14)
 
     ax.text(-0.05, 1.06, "(d)", size=16, verticalalignment='center',
             transform=ax.transAxes)
@@ -865,7 +865,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(2, 2, 3)
 
     angles = (0.0, 0.0, 0.0)
-    sigma = (1.0, 0.0, 0.0)
+    sigma = (0.5, 0.0, 0.0)
     dens = 1.0
 
     lh = 1000.0
@@ -950,7 +950,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(2, 2, 2)
 
     angles = (0.0, 0.0, 0.0)
-    sigma = (1.0, 0.0, 0.0)
+    sigma = (0.5, 0.0, 0.0)
     dens = 1.0
 
     lh = 1000.0
@@ -1027,7 +1027,7 @@ if __name__ == '__main__':
     ax.set_ylabel(r'$\tau_{xx}$', fontsize=16)
     ax.legend(title=r'$\mu=$')
     ax.set_title(r'$\lambda_h=1000, \ \lambda_1=5, \ \lambda_2=3, \ '
-                 r'\lambda_5=2, \ \sigma=1$', fontsize=14)
+                 r'\lambda_5=2, \ \sigma=0.5$', fontsize=14)
 
     ax.text(-0.05, 1.06, "(b)", size=16, verticalalignment='center',
             transform=ax.transAxes)
@@ -1035,7 +1035,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(2, 2, 1)
 
     angles = (0.0, 0.0, 0.0)
-    sigma = (1.0, 0.0, 0.0)
+    sigma = (0.5, 0.0, 0.0)
     dens = 1.0
 
     lh = 1000.0
@@ -1111,7 +1111,7 @@ if __name__ == '__main__':
     ax.set_ylabel('Volumetric change', fontsize=16)
     ax.legend(title=r'$\lambda_h=$')
     ax.set_title(r'$\lambda_1=1, \ \lambda_2=1, \ '
-                 r'\lambda_5=1, \ \sigma=1, \ \mu=0$', fontsize=14)
+                 r'\lambda_5=1, \ \sigma=0.5, \ \mu=0$', fontsize=14)
 
     ax.text(-0.05, 1.06, "(a)", size=16, verticalalignment='center',
             transform=ax.transAxes)
