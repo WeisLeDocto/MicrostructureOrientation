@@ -6,11 +6,24 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import Normalize
+from itertools import batched
 
 from kelvin_model import (kelvin_lib_path, prepare_data, calc_density,
                           compute_stress)
 
 if __name__ == '__main__':
+
+    fields = ('density_min', 'contrast', 'lambda_h', 'lambda_11', 'lambda_21',
+              'lambda_51', 'lambda_12', 'lambda_22', 'lambda_52')
+    for img1, img2 in batched(('7LX1', '7LX1_2_2', '7LX1_2', '7LX1_2_2_2',
+                               '7LX1_3', '7LX1_3_2_2'), 2):
+        fit_file_1 = pd.read_csv(Path(f"./data/{img1}/results.csv"))
+        fit_file_2 = pd.read_csv(Path(f"./data/{img2}/results.csv"))
+        print(*tuple(f"{fit_file_1[field][0]:.2f}" for field in fields))
+        print(*tuple(f"{fit_file_2[field][0]:.2f}" for field in fields))
+        print(*tuple(f"{(fit_file_1[field].iloc[0] - fit_file_2[field].iloc[0]) 
+                        / fit_file_1[field].iloc[0]:.2f}" for field in fields))
+        print()
 
     plt.rcParams.update({
         "text.usetex": True,
