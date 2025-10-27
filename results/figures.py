@@ -111,7 +111,7 @@ if __name__ == '__main__':
     axs[2][0].set_title('(e)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=axs[2][0])
-    c.set_label(r'Low $H_{xx}$', fontsize=12)
+    c.set_label(r'$H_{xx}$ low strain', fontsize=12)
 
     lo = -max(abs(np.percentile(exxs[1], 1)), abs(np.percentile(exxs[1], 99)))
     hi = max(abs(np.percentile(exxs[1], 1)), abs(np.percentile(exxs[1], 99)))
@@ -119,7 +119,7 @@ if __name__ == '__main__':
     axs[2][1].set_title('(f)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=axs[2][1])
-    c.set_label(r'Low $H_{yy}$', fontsize=12)
+    c.set_label(r'$H_{xx}$ high strain', fontsize=12)
 
     lo = -max(abs(np.percentile(eyys[0], 1)), abs(np.percentile(eyys[0], 99)))
     hi = max(abs(np.percentile(eyys[0], 1)), abs(np.percentile(eyys[0], 99)))
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     axs[3][0].set_title('(g)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=axs[3][0])
-    c.set_label(r'High $H_{xx}$', fontsize=12)
+    c.set_label(r'$H_{yy}$ low strain', fontsize=12)
 
     lo = -max(abs(np.percentile(eyys[1], 1)), abs(np.percentile(eyys[1], 99)))
     hi = max(abs(np.percentile(eyys[1], 1)), abs(np.percentile(eyys[1], 99)))
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     axs[3][1].set_title('(h)', loc='left')
     c = plt.colorbar(ScalarMappable(norm=Normalize(lo, hi), cmap='coolwarm'),
                      ax=axs[3][1])
-    c.set_label(r'High $H_{yy}$', fontsize=12)
+    c.set_label(r'$H_{yy}$ high strain', fontsize=12)
 
     axs[4][0].imshow(m_1, cmap='magma', clim=(-1, 1))
     axs[4][0].set_title('(i)', loc='left')
