@@ -159,7 +159,7 @@ if __name__ == "__main__":
     ax5 = fig.add_subplot(gs[2, 0])
     ax6 = fig.add_subplot(gs[2, 1])
 
-    image = np.load('./7_04362.npy')
+    image = np.load('../../results/data/7LX1_3/hdr/7_04362.npy')
     image = 1.0 - (image - image.min()) / (image.max() - image.min())
 
     (raw, angles, _, _, score, aniso, _) = process_img(image, 60.0, 4, 20, 25)
@@ -225,7 +225,7 @@ if __name__ == "__main__":
     ax5 = fig.add_subplot(gs[2, 0])
     ax6 = fig.add_subplot(gs[2, 1])
 
-    image = np.load('./composite.npy')
+    image = np.load('../results/data/composite.npy')
     image = 1.0 - (image - image.min()) / (image.max() - image.min())
 
     (raw, angles, _, _, score, aniso, _) = process_img(image, 60.0, 2, 10, 25)
@@ -282,7 +282,7 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(10, 10),
                             layout='constrained')
 
-    image = np.load('./composite.npy')
+    image = np.load('../results/data/composite.npy')
     image = 1.0 - (image - image.min()) / (image.max() - image.min())
 
     (raw, angles, _, _, score, aniso, _) = process_img(image, 60.0, 4, 20, 25)
@@ -337,7 +337,7 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(2, 2, sharex='col', sharey='row', figsize=(10, 10),
                             layout='constrained')
 
-    image = np.load('./7_04362.npy')
+    image = np.load('../../results/data/7LX1_3/hdr/7_04362.npy')
     image = 1.0 - (image - image.min()) / (image.max() - image.min())
 
     (raw, angles, _, _, score, aniso, _) = process_img(image, 60.0, 4, 20, 25)

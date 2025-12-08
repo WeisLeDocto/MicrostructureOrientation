@@ -86,7 +86,7 @@ def periodic_gauss(x: np.ndarray,
 
 if __name__ == '__main__':
 
-    img = np.load('../7_04362.npy')
+    img = np.load('../../results/data/7LX1_3/hdr/7_04362.npy')
     filter_wavelength = 100
     sigma_x = 4
     sigma_y = 10
