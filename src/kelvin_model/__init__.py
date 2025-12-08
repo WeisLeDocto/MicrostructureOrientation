@@ -4,6 +4,8 @@ from .compute_stress import compute_stress
 from .image_correlation import image_correlation
 from .results_vs_expe import compare_results_expe
 from .optimize_common import optimize_diagonals
+from ._kelvin_utils import (prepare_data, calc_density, stress_diag_to_force,
+                            diagonals_interpolator)
 
 import importlib.util
 
