@@ -10,7 +10,6 @@ import sys
 import math
 from tqdm.auto import tqdm
 from matplotlib import pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 from microstructure_orientation.peak_detection import _find_peaks_gpu
 from microstructure_orientation.gaussian_fit import _fit_gpu
 
@@ -87,9 +86,7 @@ def periodic_gauss(x: np.ndarray,
 
 if __name__ == '__main__':
 
-    # img = np.load('/home/weis/Desktop/HDR/7LX1_2/hdr/0_1714.npy')
-    # img = np.load('/home/weis/Desktop/HDR/7LX1/hdr/2_3260.npy')
-    img = np.load('/home/weis/Desktop/HDR/7LX1_3/hdr/7_04362.npy')
+    img = np.load('../7_04362.npy')
     filter_wavelength = 100
     sigma_x = 4
     sigma_y = 10
@@ -103,8 +100,7 @@ if __name__ == '__main__':
     plt.yticks([])
     plt.imshow(img, cmap='Greys')
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/image.svg', dpi=300)
+    plt.savefig('./image.svg', dpi=300)
 
     mem_pool = cp.get_default_memory_pool()
 
@@ -123,16 +119,14 @@ if __name__ == '__main__':
     plt.yticks([])
     plt.imshow(cp.asnumpy(cp.real(kernels[0])), cmap='plasma')
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/kernel_0.svg', dpi=300)
+    plt.savefig('./kernel_0.svg', dpi=300)
 
     plt.figure()
     plt.xticks([])
     plt.yticks([])
     plt.imshow(cp.asnumpy(cp.real(kernels[22])), cmap='plasma')
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/kernel_90.svg', dpi=300)
+    plt.savefig('./kernel_90.svg', dpi=300)
 
     img_gpu = cp.asarray(img, dtype='float32')
     res_gpu = cp.zeros(shape=(*img.shape, NB_ANGLES), dtype='float32')
@@ -161,24 +155,21 @@ if __name__ == '__main__':
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/gabor_0.svg', dpi=300)
+    plt.savefig('./gabor_0.svg', dpi=300)
 
     plt.figure()
     plt.imshow(res[..., 22], cmap='plasma')
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/gabor_90.svg', dpi=300)
+    plt.savefig('./gabor_90.svg', dpi=300)
 
     plt.figure()
     plt.plot(np.linspace(0, 180, NB_ANGLES), res[215, 591])
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/angle_distribution.svg', dpi=300)
+    plt.savefig('./angle_distribution.svg', dpi=300)
 
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()
@@ -190,16 +181,14 @@ if __name__ == '__main__':
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/dominant_angle.svg', dpi=300)
+    plt.savefig('./dominant_angle.svg', dpi=300)
 
     plt.figure()
     plt.imshow(angles[..., 1], cmap='twilight')
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/second_angle.svg', dpi=300)
+    plt.savefig('./second_angle.svg', dpi=300)
 
     mem_pool.free_all_blocks()
     mem_pool = cp.get_default_memory_pool()
@@ -238,16 +227,14 @@ if __name__ == '__main__':
                             *np.radians(angles[215, 591]),
                             n_peaks[215, 591]), color='k')
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/gaussian_fit.svg', dpi=300)
+    plt.savefig('./gaussian_fit.svg', dpi=300)
 
     plt.figure()
     plt.imshow(param[..., 0], cmap='plasma')
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/std.svg', dpi=300)
+    plt.savefig('./std.svg', dpi=300)
 
     plt.figure()
     plt.imshow(param[..., 1], cmap='plasma',
@@ -256,8 +243,7 @@ if __name__ == '__main__':
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/amplitude.svg', dpi=300)
+    plt.savefig('./amplitude.svg', dpi=300)
 
     plt.figure()
     data = param[..., 1] / param[..., 0]
@@ -266,7 +252,6 @@ if __name__ == '__main__':
     plt.xticks([])
     plt.yticks([])
 
-    plt.savefig('/home/weis/Codes/MicrostructureOrientation/'
-                'figures/graphical_abstract/anisotropy.svg', dpi=300)
+    plt.savefig('./anisotropy.svg', dpi=300)
 
     plt.show()
