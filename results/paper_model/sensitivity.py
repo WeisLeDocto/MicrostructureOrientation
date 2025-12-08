@@ -18,14 +18,14 @@ if __name__ == '__main__':
 
     img = '7LX1'
 
-    ref_img_pth = {'7LX1': Path(f"./data/{img}/hdr/14_5391.npy"),
-                   '7LX1_2': Path(f"./data/{img}/hdr/4_2414.npy"),
-                   '7LX1_3': Path(f"./data/{img}/hdr/7_04362.npy")}
+    ref_img_pth = {'7LX1': Path(f"../data/{img}/hdr/14_5391.npy"),
+                   '7LX1_2': Path(f"../data/{img}/hdr/4_2414.npy"),
+                   '7LX1_3': Path(f"../data/{img}/hdr/7_04362.npy")}
     ref_img = np.load(ref_img_pth[img])
 
     lib_path = Path(kelvin_lib_path)
 
-    density_base = np.load(Path(f"./data/{img}/density.npy"))
+    density_base = np.load(Path(f"../data/{img}/density.npy"))
 
     if img == '7LX1':
         roi_y = slice(1486, 3005, 1)
@@ -40,15 +40,15 @@ if __name__ == '__main__':
         raise ValueError
     density_base = density_base[roi_x, roi_y]
 
-    gauss_fit = np.load(Path(f"./data/{img}/fit.npy"))
+    gauss_fit = np.load(Path(f"../data/{img}/fit.npy"))
 
-    peaks = np.radians(np.load(Path(f"./data/{img}/angle.npy")))
+    peaks = np.radians(np.load(Path(f"../data/{img}/angle.npy")))
 
     # Images to use for the optimization
     def_images_paths = {
-        '7LX1': (Path(f"./data/{img}/hdr/21_6630.npy"),),
-        '7LX1_2': (Path(f"./data/{img}/hdr/13_4018.npy"),),
-        '7LX1_3': (Path(f"./data/{img}/hdr/16_05955.npy"),)}
+        '7LX1': (Path(f"../data/{img}/hdr/21_6630.npy"),),
+        '7LX1_2': (Path(f"../data/{img}/hdr/13_4018.npy"),),
+        '7LX1_3': (Path(f"../data/{img}/hdr/16_05955.npy"),)}
 
     def_images = tuple(np.load(image) for image in def_images_paths[img])
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
     thickness = 0.54
 
     # Other parameters driving the optimization process
-    fit_file = pd.read_csv(Path(f"./data/{img}/results.csv"))
+    fit_file = pd.read_csv(Path(f"../data/{img}/results.csv"))
 
     (exxs, eyys, exys,
      sigma_1, sigma_2, sigma_3,
@@ -546,14 +546,14 @@ if __name__ == '__main__':
 
     img = '7LX1_2'
 
-    ref_img_pth = {'7LX1': Path(f"./data/{img}/hdr/14_5391.npy"),
-                   '7LX1_2': Path(f"./data/{img}/hdr/4_2414.npy"),
-                   '7LX1_3': Path(f"./data/{img}/hdr/7_04362.npy")}
+    ref_img_pth = {'7LX1': Path(f"../data/{img}/hdr/14_5391.npy"),
+                   '7LX1_2': Path(f"../data/{img}/hdr/4_2414.npy"),
+                   '7LX1_3': Path(f"../data/{img}/hdr/7_04362.npy")}
     ref_img = np.load(ref_img_pth[img])
 
     lib_path = Path(kelvin_lib_path)
 
-    density_base = np.load(Path(f"./data/{img}/density.npy"))
+    density_base = np.load(Path(f"../data/{img}/density.npy"))
 
     if img == '7LX1':
         roi_y = slice(1486, 3005, 1)
@@ -568,15 +568,15 @@ if __name__ == '__main__':
         raise ValueError
     density_base = density_base[roi_x, roi_y]
 
-    gauss_fit = np.load(Path(f"./data/{img}/fit.npy"))
+    gauss_fit = np.load(Path(f"../data/{img}/fit.npy"))
 
-    peaks = np.radians(np.load(Path(f"./data/{img}/angle.npy")))
+    peaks = np.radians(np.load(Path(f"../data/{img}/angle.npy")))
 
     # Images to use for the optimization
     def_images_paths = {
-        '7LX1': (Path(f"./data/{img}/hdr/21_6630.npy"),),
-        '7LX1_2': (Path(f"./data/{img}/hdr/13_4018.npy"),),
-        '7LX1_3': (Path(f"./data/{img}/hdr/16_05955.npy"),)}
+        '7LX1': (Path(f"../data/{img}/hdr/21_6630.npy"),),
+        '7LX1_2': (Path(f"../data/{img}/hdr/13_4018.npy"),),
+        '7LX1_3': (Path(f"../data/{img}/hdr/16_05955.npy"),)}
 
     def_images = tuple(np.load(image) for image in def_images_paths[img])
 
@@ -586,7 +586,7 @@ if __name__ == '__main__':
     thickness = 0.54
 
     # Other parameters driving the optimization process
-    fit_file = pd.read_csv(Path(f"./data/{img}/results.csv"))
+    fit_file = pd.read_csv(Path(f"../data/{img}/results.csv"))
 
     (exxs, eyys, exys,
      sigma_1, sigma_2, sigma_3,
@@ -1069,14 +1069,14 @@ if __name__ == '__main__':
 
     img = '7LX1_3'
 
-    ref_img_pth = {'7LX1': Path(f"./data/{img}/hdr/14_5391.npy"),
-                   '7LX1_2': Path(f"./data/{img}/hdr/4_2414.npy"),
-                   '7LX1_3': Path(f"./data/{img}/hdr/7_04362.npy")}
+    ref_img_pth = {'7LX1': Path(f"../data/{img}/hdr/14_5391.npy"),
+                   '7LX1_2': Path(f"../data/{img}/hdr/4_2414.npy"),
+                   '7LX1_3': Path(f"../data/{img}/hdr/7_04362.npy")}
     ref_img = np.load(ref_img_pth[img])
 
     lib_path = Path(kelvin_lib_path)
 
-    density_base = np.load(Path(f"./data/{img}/density.npy"))
+    density_base = np.load(Path(f"../data/{img}/density.npy"))
 
     if img == '7LX1':
         roi_y = slice(1486, 3005, 1)
@@ -1091,15 +1091,15 @@ if __name__ == '__main__':
         raise ValueError
     density_base = density_base[roi_x, roi_y]
 
-    gauss_fit = np.load(Path(f"./data/{img}/fit.npy"))
+    gauss_fit = np.load(Path(f"../data/{img}/fit.npy"))
 
-    peaks = np.radians(np.load(Path(f"./data/{img}/angle.npy")))
+    peaks = np.radians(np.load(Path(f"../data/{img}/angle.npy")))
 
     # Images to use for the optimization
     def_images_paths = {
-        '7LX1': (Path(f"./data/{img}/hdr/21_6630.npy"),),
-        '7LX1_2': (Path(f"./data/{img}/hdr/13_4018.npy"),),
-        '7LX1_3': (Path(f"./data/{img}/hdr/16_05955.npy"),)}
+        '7LX1': (Path(f"../data/{img}/hdr/21_6630.npy"),),
+        '7LX1_2': (Path(f"../data/{img}/hdr/13_4018.npy"),),
+        '7LX1_3': (Path(f"../data/{img}/hdr/16_05955.npy"),)}
 
     def_images = tuple(np.load(image) for image in def_images_paths[img])
 
@@ -1109,7 +1109,7 @@ if __name__ == '__main__':
     thickness = 0.54
 
     # Other parameters driving the optimization process
-    fit_file = pd.read_csv(Path(f"./data/{img}/results.csv"))
+    fit_file = pd.read_csv(Path(f"../data/{img}/results.csv"))
 
     (exxs, eyys, exys,
      sigma_1, sigma_2, sigma_3,
